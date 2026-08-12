@@ -101,9 +101,6 @@ python -m src.cli -c config/martine.yaml evaluate
 #    Writes eval_results/curves/.
 python -m src.cli -c config/martine.yaml curves -n 100
 
-# Optional: rebuild metrics.json + curves from saved distances, e.g. after changing
-# max_dist or adding a mask. Never re-runs the nearest-neighbour search.
-python -m src.cli -c config/martine.yaml recompute
 ```
 
 Scope any stage with `-o/--object` and `-m/--method`; re-run with `-f/--force`.
