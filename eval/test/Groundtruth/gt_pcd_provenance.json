@@ -1,0 +1,12 @@
+{
+  "gt_pcd_sampled_from": "gt_cleaned.ply",
+  "source_mesh_path": "/projects/m25115/eval_3d_datasets/martine_dataset/eval_gt_cleaned/28_spine/Groundtruth/gt_cleaned.ply",
+  "clean_gt_requested": true,
+  "n_points": 15542823,
+  "mesh_vertices": 2499980,
+  "mesh_faces": 4881977,
+  "use_masks": false,
+  "dilation_radius": 30,
+  "density": 0.05,
+  "written": "2026-07-30T23:37:50"
+}

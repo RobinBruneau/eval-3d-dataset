@@ -13,6 +13,7 @@ import pytest
 from src.core.masking import (
     AUTO_EXCLUDE,
     MAX_AUTO_DROP_FRACTION,
+    data_in_voxels,
     load_gt_exclude,
 )
 
@@ -33,6 +34,16 @@ def _make_gt(tmp_path, *, invisible=None, excluded=None, extra=None):
 
 def test_invisible_is_auto_discovered():
     assert "invisible.npy" in AUTO_EXCLUDE
+
+
+def test_data_in_voxels_marks_points_inside_any_voxel():
+    points = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [2.0, 2.0, 2.0], [5.0, 5.0, 5.0]])
+    voxels = np.array([[0.0, 0.0, 0.0, 1.0, 1.0, 1.0], [2.0, 2.0, 2.0, 3.0, 3.0, 3.0]])
+
+    inside = data_in_voxels(points, voxels)
+
+    assert inside.dtype == bool
+    assert inside.tolist() == [True, True, True, False]
 
 
 def test_applied_without_any_flag(tmp_path):

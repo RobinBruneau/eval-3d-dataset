@@ -232,6 +232,10 @@ class Config(BaseModel):
         """Get the groundtruth directory in eval_root."""
         return self.get_eval_root(object_name) / "Groundtruth"
 
+    def get_masks_issue_watertight_dir(self, object_name: str) -> Path:
+        """Get the path to the watertight issue masks directory."""
+        return self.get_gt_dir(object_name) / "masks_issue_watertight"
+
     def get_gt_mesh_path(self, object_name: str, cleaned: bool = False) -> Path:
         """Get the GT mesh path by searching for .ply files in Groundtruth directory.
         

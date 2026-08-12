@@ -9,7 +9,7 @@ from ..config import Config
 from ..core.mesh import load_mesh
 from ..core.sampling import upsample_mesh, downsample_pcd
 from ..core.metrics import compute_distances, compute_metrics
-from ..core.masking import load_gt_exclude, apply_exclude
+from ..core.masking import load_gt_exclude, apply_exclude, load_gt_exclude_voxels, apply_exclude_voxels
 import cv2
 
 
@@ -62,6 +62,12 @@ def evaluate(
     gt_pcd = np.load(gt_pcd_path)
     print(f"  Loaded GT point cloud: {len(gt_pcd)} points")
 
+    # randomly take 10% of the GT points for evaluation to speed up the process
+    if len(gt_pcd) > 100000:
+        np.random.seed(seed)
+        gt_pcd = gt_pcd[np.random.choice(len(gt_pcd), size=int(len(gt_pcd) * 0.1), replace=False)]
+        print(f"  Downsampled GT point cloud to {len(gt_pcd)} points for evaluation")
+
     data_mesh = load_mesh(cleaned_mesh_path)
     print(f"  Loaded cleaned mesh: {len(data_mesh.vertices)} vertices")
 
@@ -86,6 +92,7 @@ def evaluate(
     print(f"  Computing distances")
     dist_data2gt, idx_data2gt = compute_distances(data_down, gt_pcd)
     dist_gt2data, idx_gt2data = compute_distances(gt_pcd, data_down)
+    print(f"  Computed distances: data2gt {len(dist_data2gt)} points, gt2data {len(dist_gt2data)} points")
 
     # Apply GT exclusion mask(s). Shared with recompute/curves via core.masking so the
     # three code paths can no longer diverge.
@@ -95,12 +102,49 @@ def evaluate(
     # to pass and no follow-up pass to run. Every cell this function writes carries the
     # mask by construction; `metrics["exclude_masks"]` below records exactly which files
     # were used, so the claim is checkable per cell rather than assumed corpus-wide.
-    exclude, applied_masks = load_gt_exclude(
-        gt_dir, n_gt=len(gt_pcd), extra_exclude=extra_exclude
+
+    #exclude, applied_masks = load_gt_exclude(
+    #    gt_dir, n_gt=len(gt_pcd), extra_exclude=extra_exclude
+    #)
+
+    #dist_data2gt_filtered, dist_gt2data_filtered = apply_exclude_voxels(
+    #       dist_data2gt, dist_gt2data, idx_data2gt, exclude
+    #    )
+
+    print(f"  Loading voxels exclusion masks")
+    exclude_gt, exclude_data, applied_masks = load_gt_exclude_voxels(
+            gt_dir, data_down, gt_pcd, extra_exclude=extra_exclude
     )
-    dist_data2gt_filtered, dist_gt2data_filtered = apply_exclude(
-        dist_data2gt, dist_gt2data, idx_data2gt, exclude
+
+    dist_data2gt_filtered, dist_gt2data_filtered = apply_exclude_voxels(
+        dist_data2gt, dist_gt2data, exclude_gt, exclude_data
     )
+
+    debug = True
+    if debug:
+        debug_dir = eval_dir / "debug"
+        debug_dir.mkdir(parents=True, exist_ok=True)
+
+        def write_point_cloud_obj(path: Path, points: np.ndarray) -> None:
+            points = np.asarray(points, dtype=float)
+            if points.ndim == 1:
+                points = points.reshape(1, -1)
+            with open(path, "w") as f:
+                for point in points:
+                    if point.shape[0] != 3:
+                        raise ValueError(f"Expected 3D point, got shape {point.shape}")
+                    f.write(f"v {point[0]} {point[1]} {point[2]}\n")
+
+        write_point_cloud_obj(debug_dir / "data_points_before.obj", data_down)
+        write_point_cloud_obj(
+            debug_dir / "data_points_after.obj",
+            data_down[~exclude_data] if exclude_data is not None else data_down,
+        )
+        write_point_cloud_obj(debug_dir / "gt_points_before.obj", gt_pcd)
+        write_point_cloud_obj(
+            debug_dir / "gt_points_after.obj",
+            gt_pcd[~exclude_gt] if exclude_gt is not None else gt_pcd,
+        )
 
     print(f"  Computing metrics")
     metrics = compute_metrics(

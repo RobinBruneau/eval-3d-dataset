@@ -73,6 +73,7 @@ def check_object(obj_dir: Path) -> list[str]:
     exc_path = gt / "challenges" / "excluded.npy"
     if exc_path.exists():
         e = np.load(exc_path)
+        # ROBIN: excluded.npy is now a list of voxels x,y,z x,y,z for each excluded voxel, so its length is not expected to match gt_pcd anymore. 
         if len(e) != pcd_len:
             issues.append(f"excluded: len={len(e)} != pcd={pcd_len}")
 

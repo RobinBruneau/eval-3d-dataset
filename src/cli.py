@@ -125,6 +125,8 @@ def cleanup(ctx, object_name, method_name, use_masks, force):
                 raise
 
 
+
+
 @main.command()
 @click.option("--object", "-o", "object_name", help="Object name (default: all)")
 @click.option("--method", "-m", "method_name", help="Method name (default: all)")

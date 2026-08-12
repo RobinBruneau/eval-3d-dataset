@@ -64,6 +64,139 @@ def resolve_mask_path(gt_dir: Path, name: str) -> Path:
     return gt_dir / "challenges" / f"{name}.npy"
 
 
+def data_in_voxels(
+    pcd: np.ndarray,
+    voxels: np.ndarray,
+    chunk_size: int = 100_000,
+) -> np.ndarray:
+    """Return a boolean mask indicating whether each point lies inside any voxel.
+
+    Args:
+        pcd: Point cloud array of shape ``(n_points, 3)``.
+        voxels: Voxel array of shape ``(n_voxels, 6)`` where each row is
+            ``(x0, y0, z0, x1, y1, z1)`` for two opposite corners.
+        chunk_size: Number of points to process at once to limit memory usage.
+
+    Returns:
+        A boolean array of shape ``(n_points,)``. ``True`` means the point lies
+        inside at least one voxel.
+    """
+    pcd = np.asarray(pcd, dtype=float)
+    voxels = np.asarray(voxels, dtype=float)
+
+    if pcd.ndim == 1:
+        if pcd.shape[0] != 3:
+            raise ValueError("pcd must have shape (n_points, 3) or (3,)")
+        pcd = pcd.reshape(1, 3)
+    if pcd.ndim != 2 or pcd.shape[1] != 3:
+        raise ValueError("pcd must have shape (n_points, 3)")
+
+    if voxels.ndim == 1:
+        if voxels.shape[0] != 6:
+            raise ValueError("voxels must have shape (n_voxels, 6) or (6,)")
+        voxels = voxels.reshape(1, 6)
+    if voxels.ndim != 2 or voxels.shape[1] != 6:
+        raise ValueError("voxels must have shape (n_voxels, 6)")
+
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be a positive integer")
+
+    if voxels.shape[0] == 0:
+        return np.zeros(pcd.shape[0], dtype=bool)
+
+    voxel_min = np.minimum(voxels[:, :3], voxels[:, 3:])
+    voxel_max = np.maximum(voxels[:, :3], voxels[:, 3:])
+
+    # Each True entry indicates a vertex that will be removed because it falls inside
+    # one of the exclusion voxels; np.count_nonzero(result) is the number of vertices
+    # discarded by this mask.
+    result = np.zeros(pcd.shape[0], dtype=bool)
+    for start in range(0, pcd.shape[0], chunk_size):
+        end = min(start + chunk_size, pcd.shape[0])
+        chunk = pcd[start:end]
+
+        inside = (
+            (chunk[:, None, 0] >= voxel_min[None, :, 0])
+            & (chunk[:, None, 0] <= voxel_max[None, :, 0])
+            & (chunk[:, None, 1] >= voxel_min[None, :, 1])
+            & (chunk[:, None, 1] <= voxel_max[None, :, 1])
+            & (chunk[:, None, 2] >= voxel_min[None, :, 2])
+            & (chunk[:, None, 2] <= voxel_max[None, :, 2])
+        )
+        result[start:end] = np.any(inside, axis=1)
+
+    return result
+
+
+def load_gt_exclude_voxels(
+    gt_dir: Path,
+    data_pcd: np.ndarray,
+    gt_pcd: np.ndarray,
+    use_excluded: bool = True,
+    extra_exclude: list[str] | None = None,
+    verbose: bool = True,
+    use_auto: bool = True,
+) -> tuple[np.ndarray | None, list[str]]:
+    """Build the combined boolean *exclusion* mask over GT points.
+
+    Args:
+        gt_dir: Groundtruth directory for the object.
+        n_gt: Number of GT points; every mask must match this length.
+        use_excluded: Load the historical `challenges/excluded.npy` (default on, so
+            behaviour is unchanged for existing callers).
+        extra_exclude: Additional mask names/paths, OR-ed in. True = drop.
+        verbose: Print what was applied.
+        use_auto: Apply `AUTO_EXCLUDE` masks found on disk (default on — this is the
+            structural guarantee, see module docstring). Turn off only to *reproduce*
+            an unmasked baseline for comparison; production paths never do.
+
+    Returns:
+        (exclude, applied) where `exclude` is a bool array of length n_gt (True = drop)
+        or None if nothing applies, and `applied` lists the sources used.
+    """
+    exclude_data: np.ndarray | None = None
+    exclude_gt: np.ndarray | None = None
+    applied: list[str] = []
+
+    sources: list[tuple[Path, bool]] = []  # (path, is_auto)
+    if use_excluded:
+        sources.append((gt_dir / "challenges" / "excluded.npy", False))
+    
+
+    seen: set[str] = set()
+
+    for path, is_auto in sources:
+        key = str(path.resolve()) if path.exists() else str(path)
+        if key in seen:
+            continue
+        if not path.exists():
+            # An absent auto mask is normal: the object may predate the mask. An absent
+            # *requested* mask is a typo or a broken deployment — fail loudly.
+            if path.name == "excluded.npy" or is_auto:
+                continue
+            raise FileNotFoundError(f"Exclusion mask not found: {path}")
+        seen.add(key)
+        voxels = np.load(path)
+        if voxels.dtype != float:
+            voxels = voxels.astype(float)
+        if voxels.shape[1] != 6:
+            raise ValueError(
+                f"Voxels {path} must have shape (n_voxels, 6), got {voxels.shape}"
+            )
+        
+                
+        exclude_gt = data_in_voxels(gt_pcd, voxels)
+        exclude_data = data_in_voxels(data_pcd, voxels)
+        print(
+            f"  Voxels {path.name}: remove {int(exclude_gt.sum())} GT vertices and "
+            f"{int(exclude_data.sum())} data vertices"
+        )
+        applied.append(str(path))
+
+    return exclude_gt, exclude_data, applied
+
+
+
 def load_gt_exclude(
     gt_dir: Path,
     n_gt: int,
@@ -169,3 +302,27 @@ def apply_exclude(
     gt_keep = ~exclude
     data_keep = gt_keep[idx_data2gt]
     return dist_data2gt[data_keep], dist_gt2data[gt_keep]
+
+
+def apply_exclude_voxels(
+    dist_data2gt: np.ndarray,
+    dist_gt2data: np.ndarray,
+    exclude_gt: np.ndarray | None,
+    exclude_data: np.ndarray | None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply a GT exclusion mask to both distance directions.
+
+    The reconstruction side inherits exclusion through its nearest-GT index, which is
+    what `evaluate.py` has always done. Reproduces that behaviour bit-for-bit so that
+    recomputing from saved `.npy` equals a full re-evaluation.
+    """
+    if exclude_gt is None and exclude_data is None:
+        return dist_data2gt, dist_gt2data
+
+    print(dist_data2gt.shape, dist_gt2data.shape, exclude_gt.shape, exclude_data.shape)
+    gt_keep = ~exclude_gt
+    data_keep = ~exclude_data
+    return dist_data2gt[data_keep], dist_gt2data[gt_keep]
+
+
+

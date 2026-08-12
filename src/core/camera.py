@@ -176,11 +176,13 @@ def load_cameras_from_sfmdata(sfm_path: str | Path) -> dict[str, np.ndarray]:
         "Rt": [], "scale": [], "scale_inv": [],
     }
     pose_ids_collected = []
+    mask_names_collected = []
     seen_pose_ids = set()
 
     for view in sfm.get("views", []):
         pose_id = str(view.get("poseId", ""))
         intr_id = str(view.get("intrinsicId", ""))
+        mask_id = str(view.get("path", ""))
         if pose_id not in poses_dict or intr_id not in intrinsics_dict:
             continue
         # Deduplicate by poseId (MVPS has 30 views per pose with same camera)
@@ -241,7 +243,13 @@ def load_cameras_from_sfmdata(sfm_path: str | Path) -> dict[str, np.ndarray]:
         cameras["scale_inv"].append(S.astype(np.float32))
         pose_ids_collected.append(pose_id)
 
-    cameras["mask_names"] = [f"{pid}.png" for pid in pose_ids_collected]
+        mask_id = mask_id.split("/")[-1].split(".")[0]
+        mask_names_collected.append(mask_id)
+
+
+
+
+    cameras["mask_names"] = [f"{pid}.png" for pid in mask_names_collected]
     cameras["image_width"] = w
     cameras["image_height"] = h
 

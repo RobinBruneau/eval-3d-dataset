@@ -83,9 +83,11 @@ def upsample_mesh(
     tri_vert = tri_vert[non_zero_area]
 
     # Compute sampling density per triangle
+    print(f"[upsample_mesh] begin triangle grid estimation: faces={len(tri_vert)}, density={density}")
     thr = density * np.sqrt(l1 * l2 / area2)
     n1 = np.floor(l1 / thr).astype(int)
     n2 = np.floor(l2 / thr).astype(int)
+    print(f"[upsample_mesh] max n1={int(n1.max()) if len(n1) else 0}, max n2={int(n2.max()) if len(n2) else 0}")
 
     # Prepare arguments for parallel processing
     args = (
@@ -95,11 +97,13 @@ def upsample_mesh(
 
     # Handle edge case: no valid triangles
     if len(n1) == 0:
+        print("[upsample_mesh] no valid triangles after degenerate filtering")
         return vertices.astype(np.float32)
 
     # Sample points in parallel using imap for memory efficiency
     if n_jobs == -1:
         n_jobs = mp.cpu_count()
+    print(f"[upsample_mesh] launching pool with n_jobs={n_jobs}")
 
     # Collect results incrementally to reduce memory peak
     all_pts = [vertices]
@@ -111,6 +115,7 @@ def upsample_mesh(
             (n1[i, 0], n2[i, 0], v1[i : i + 1], v2[i : i + 1], tri_vert[i : i + 1, 0])
             for i in range(len(n1))
         ]
+        print(f"[upsample_mesh] built {len(args_list)} tasks for multiprocessing")
 
         for i, pts in enumerate(pool.imap(sample_single_tri, args_list, chunksize=1024)):
             if len(pts) > 0:
@@ -118,12 +123,15 @@ def upsample_mesh(
 
             # Periodically concatenate to free memory
             if len(all_pts) > batch_size:
+                print(f"[upsample_mesh] compacting accumulated batch at iteration {i}")
                 all_pts = [np.concatenate(all_pts, axis=0)]
 
     # Final concatenation
     if len(all_pts) == 0:
+        print("[upsample_mesh] no points collected after multiprocessing")
         return vertices.astype(np.float32)
 
+    print(f"[upsample_mesh] final concatenation: total points={sum(len(x) for x in all_pts)}")
     pcd = np.concatenate(all_pts, axis=0).astype(np.float32)
     return pcd
 
