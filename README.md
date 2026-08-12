@@ -135,17 +135,6 @@ else is required.
 | `cleanup.z_threshold` | mesh units | Drops reconstructed points below this height (support plane). `null` disables. |
 | `dataset.num_views` | — | Camera views used for masking and visibility. |
 
-### Masks
-
-`Groundtruth/challenges/*.npy` are boolean arrays over the **GT point cloud**, `True` meaning
-*drop this point*. They combine with logical OR, and the reconstruction side inherits the
-decision through the nearest-neighbour index.
-
-`excluded.npy` is applied automatically whenever the file exists. Whatever was applied is
-recorded in `metrics["exclude_masks"]`, so a result file states what was done rather than what
-was supposed to be done. Extra masks can be requested per run with `--extra-exclude <name>` on
-`curves` and `recompute`.
-
 
 ---
 
