@@ -12,53 +12,14 @@ and **Skoltech3D** (*sk3d*). Ready-to-edit configurations for both are in `confi
 
 ---
 
-## ⚠️ Results from earlier versions are not comparable
-
-If you evaluated with a copy of this pipeline from before **July 2026**, your numbers differ
-from those produced today, and the difference is not a rounding matter.
-
-**1. Chamfer distance returned `0.0` when no point survived `max_dist`.**
-An empty filtered set means not one point of the reconstruction landed within `max_dist` of the
-ground truth — a total failure. `0.0` is the *best possible* Chamfer, so those failures sorted
-first and the zero propagated into every average taken over objects or methods. It now returns
-`NaN`, which cannot be silently ranked as best. This is distinct from a legitimate `0.0`, which
-is what you get when points exist but none fall under threshold *t*.
-
-**2. `coverage` did not exist.** A Chamfer computed on 1% of the points is an artefact, not a
-score, and the output gave you no way to see it. `coverage` is now reported next to every
-Chamfer — see the field table below.
-
-**3. Exclusion masks were applied inconsistently.** The masking logic lived inline in the
-evaluation path only; the curve and recompute paths skipped it. Curves on disk could therefore
-disagree with the `metrics.json` beside them for every object carrying a
-`challenges/excluded.npy`. All three paths now share `src/core/masking.py`.
-
-**4. Dense F-score curves were overwritten by the coarse reporting grid.** A curve computed on
-100 thresholds could be rewritten on the 5 reporting thresholds, silently, so plots regenerated
-afterwards were a coarse resampling of themselves.
-
-**5. `max_dist` was applied to precision and recall.** Distances above `max_dist` were dropped
-before counting, so the denominator became the number of *surviving* points while the numerator
-was untouched — a point at `d >= max_dist` could never satisfy `d < t` for `t <= max_dist`
-anyway. Every reported value was therefore `precision_true / coverage_a2b` (resp.
-`recall_true / coverage_b2a`): an overestimate that grew exactly as the reconstruction got
-worse. Where a reporting threshold reached `max_dist` it collapsed further — every surviving
-point counted, pinning precision, recall and F-score to `1.0` by construction. Both shipped
-configurations hit that case (*martine*: `max_dist: 4.0` with a `5.0` threshold; *sk3d*:
-`max_dist: 5.0` with a `5.0` threshold), and so did the whole tail of every dense curve beyond
-`max_dist`. Precision, recall and F-score are now computed over the full point sets; `max_dist`
-survives on the Chamfer distance only, where clipping a robust mean is the intended behaviour.
-
-Cross-version results should be regenerated, not reconciled.
-
----
-
 ## Install
 
 ```bash
 python -m venv venv && source venv/bin/activate
 pip install -e .
-pip install -e ".[visualization]"   # only for `visualize` (needs OSMesa)
+
+# Not necessary (only for `visualize` (needs OSMesa))
+pip install -e ".[visualization]" 
 ```
 
 Python ≥ 3.10. Dependencies: numpy, trimesh, scikit-learn, OpenCV, pydantic v2, click, PyYAML.
@@ -68,11 +29,10 @@ The real constraint is memory: nearest-neighbour queries run over 10–30 M poin
 roughly 20 minutes per object×method cell.
 
 Every command takes `-c/--config`; it is required.
+You will have to update the config/martine.yaml file with your paths for `data_root` and `eval_root`. But it should be a path towards the `DATA` and `EVAL` folders from the gdrive. You also have to update `methods` with the names of the method(s) you want to evaluate. Then in `eval_root` next to `Groundtruth`, create a folder(s) according to the same name(s), with inside a folder named `results_raw` and inside your reconstruction as `mesh.ply`. (Look at next section for the architecture details).
 
-```bash
-eval-pipeline -c config/example_martine.yaml --help      # installed entry point
-python -m src.cli -c config/example_martine.yaml --help  # equivalent, without installing
-```
+In the `DATA` folder, keep the masks folder and sfm.json as in the gdrive and do not remove anything even if you are doing some sparse reconstruction.
+
 
 ---
 
@@ -94,6 +54,8 @@ Both datasets use the same on-disk shape. `{object}` is substituted from `datase
 │       └── excluded.npy
 └── <method>/                                # one per entry in dataset.methods
     ├── results_raw/mesh.ply                 # your reconstruction — the only input you supply
+    |
+    # The following architecture will be generated
     ├── results_cleaned/mesh.ply             # written by cleanup
     └── eval_results/                        # written by evaluate / curves
         ├── metrics.json
@@ -116,6 +78,46 @@ sorted so the choice is deterministic. Name yours `gt_mesh.ply` and there is no 
 **Cameras.** Searched in order: `cameras.npz`, `sfm.json` (AliceVision SfMData),
 `cameras.json`, `*.sfm`. All meshes must already share a frame — the pipeline does not
 register.
+
+---
+
+## Run the evaluations: end to end process
+
+
+
+```bash
+
+# [STEP 1 ALREADY DONE --> SKIP IT]
+# 1. Ground truth: clean the mesh, sample it, compute per-point attributes.
+#    Writes Groundtruth/{gt_cleaned.ply,gt_pcd.npy,gt_pcd_provenance.json,attributes/}.
+python -m src.cli -c config/martine.yaml preprocess-gt --clean-gt
+
+# 2. Carve reconstructed vertices falling outside every silhouette.
+#    Reads results_raw/mesh.ply, writes results_cleaned/mesh.ply.
+python -m src.cli -c config/martine.yaml cleanup
+
+# 3. Distances, Chamfer, coverage, F-score at the reporting thresholds.
+#    Writes eval_results/metrics.json and eval_results/distances/.
+python -m src.cli -c config/martine.yaml evaluate
+
+# 4. Dense PR curves from the saved distances (no re-query).
+#    Writes eval_results/curves/.
+python -m src.cli -c config/martine.yaml curves -n 100
+
+# Optional: rebuild metrics.json + curves from saved distances, e.g. after changing
+# max_dist or adding a mask. Never re-runs the nearest-neighbour search.
+python -m src.cli -c config/martine.yaml recompute
+```
+
+Scope any stage with `-o/--object` and `-m/--method`; re-run with `-f/--force`.
+
+`preprocess-gt --clean-gt` removes ground-truth points that **no camera sees**, and resamples
+from the cleaned surface. For a solid object this changes almost nothing; for an open,
+foliage-like object it removes the entire unobservable interior. That is intended — scoring a
+reconstruction on surfaces the rig never observed measures nothing — but it means GT point
+counts are not comparable across the change. `gt_pcd_provenance.json` records which mesh the
+cloud came from, the sampling density and the resulting count.
+
 
 ---
 
@@ -147,56 +149,6 @@ recorded in `metrics["exclude_masks"]`, so a result file states what was done ra
 was supposed to be done. Extra masks can be requested per run with `--extra-exclude <name>` on
 `curves` and `recompute`.
 
-### The units trap (sk3d)
-
-`downsample_density`, `max_dist` and `fscore_thresholds` are in **the mesh's own units**. sk3d
-meshes are in **metres**; the martine-style data is in **millimetres**. Left unconverted,
-`downsample_density: 0.07` means a 70 mm step and `max_dist: 5.0` means five metres — no
-filtering at all. **The metrics come out meaningless without failing.** Convert the meshes to
-millimetres when building the eval tree and keep the thresholds in millimetres.
-`dataset.gt_units` and `dataset.units_scale_to_mm` record the source units so the conversion is
-auditable; the pipeline does not apply them itself.
-
-sk3d also uses a looser `max_dist` (5.0 vs 2.0): its objects are much larger — the
-`wooden_trex` GT diagonal is 434.9 mm against ~150 mm for DiLiGenT-MV — so a tighter bound
-would clip genuine error.
-
----
-
-## End to end
-
-```bash
-CFG=config/example_martine.yaml     # or config/example_sk3d.yaml
-
-# 1. Ground truth: clean the mesh, sample it, compute per-point attributes.
-#    Writes Groundtruth/{gt_cleaned.ply,gt_pcd.npy,gt_pcd_provenance.json,attributes/}.
-eval-pipeline -c $CFG preprocess-gt --clean-gt
-
-# 2. Carve reconstructed vertices falling outside every silhouette.
-#    Reads results_raw/mesh.ply, writes results_cleaned/mesh.ply.
-eval-pipeline -c $CFG cleanup
-
-# 3. Distances, Chamfer, coverage, F-score at the reporting thresholds.
-#    Writes eval_results/metrics.json and eval_results/distances/.
-eval-pipeline -c $CFG evaluate
-
-# 4. Dense PR curves from the saved distances (no re-query).
-#    Writes eval_results/curves/.
-eval-pipeline -c $CFG curves -n 100
-
-# Optional: rebuild metrics.json + curves from saved distances, e.g. after changing
-# max_dist or adding a mask. Never re-runs the nearest-neighbour search.
-eval-pipeline -c $CFG recompute
-```
-
-Scope any stage with `-o/--object` and `-m/--method`; re-run with `-f/--force`.
-
-`preprocess-gt --clean-gt` removes ground-truth points that **no camera sees**, and resamples
-from the cleaned surface. For a solid object this changes almost nothing; for an open,
-foliage-like object it removes the entire unobservable interior. That is intended — scoring a
-reconstruction on surfaces the rig never observed measures nothing — but it means GT point
-counts are not comparable across the change. `gt_pcd_provenance.json` records which mesh the
-cloud came from, the sampling density and the resulting count.
 
 ---
 
@@ -226,18 +178,6 @@ deliberately not `0.0` so it cannot be averaged into a ranking as though it were
 Dense curves live in `eval_results/curves/` as four aligned arrays (`thresholds`, `precision`,
 `recall`, `fscore`), independent of the coarse reporting grid.
 
----
-
-## Running on a cluster
-
-Set `execution.mode: "slurm"` and fill `execution.slurm.account` / `partition`. Job templates in
-`slurm/templates/` are fully parameterised — nothing site-specific is baked into `src/`.
-
-`watch` polls for new meshes and submits jobs as they appear; `watch-status` reports on them.
-
-> Helper scripts under `scripts/` were written for one specific machine and still contain
-> absolute paths. They are convenience wrappers, not part of the pipeline — `src/` contains no
-> absolute path.
 
 ---
 

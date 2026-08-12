@@ -30,7 +30,7 @@ cleanup:
 
 # Evaluation configuration
 evaluation:
-  downsample_density: 0.5              # Point sampling density (mm)
+  downsample_density: 0.05              # Point sampling density (mm)
   max_dist: 2.0                         # Maximum distance for outlier filtering (mm)
   fscore_thresholds:                    # Thresholds for F-score computation
     - 0.5

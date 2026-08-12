@@ -120,7 +120,7 @@ def evaluate(
         dist_data2gt, dist_gt2data, exclude_gt, exclude_data
     )
 
-    debug = True
+    debug = False
     if debug:
         debug_dir = eval_dir / "debug"
         debug_dir.mkdir(parents=True, exist_ok=True)
