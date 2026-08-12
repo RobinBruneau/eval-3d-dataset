@@ -190,17 +190,6 @@ than templates and may contain machine-specific paths; use `example_martine.yaml
 
 ---
 
-## Tests
-
-```bash
-python -m pytest tests/ -q
-```
-
-The four `tests/core/test_rendering.py` cases need an OpenGL/OSMesa context and fail in a
-headless environment. Everything else must pass.
-
----
-
 ## Scope
 
 This pipeline evaluates **geometry**: Chamfer distance, precision/recall/F-score, coverage.
