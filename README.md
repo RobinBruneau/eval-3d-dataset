@@ -7,9 +7,6 @@ distance, precision/recall/F-score at fixed thresholds, dense PR curves, a `cove
 telling you how much of the cloud those numbers were actually computed on, and optional metric
 visualisations.
 
-The repository drives two datasets: a **millimetre-scale 84-view benchmark** (*martine* below)
-and **Skoltech3D** (*sk3d*). Ready-to-edit configurations for both are in `config/`.
-
 ---
 
 ## Install
