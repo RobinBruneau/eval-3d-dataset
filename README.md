@@ -99,8 +99,8 @@ points in `challenges/excluded.npy` (unreliable GT zones) are never evaluated, i
 object (a labelled region, thin structures, cavities, …) rather than as a single global number.
 
 **Adding your own challenge.** A *challenge* is a named region of an object that is scored
-separately (e.g. `lambertian`, or any name you pick; `excluded` and `invisible` are reserved for
-exclusion masks). The name is **chosen by you and
+separately (e.g. `lambertian`, or any name you pick; `excluded` is reserved for the
+exclusion mask). The name is **chosen by you and
 taken from the file name** — the pipeline discovers challenges from files, so there is nothing to
 list by hand. To add one:
 

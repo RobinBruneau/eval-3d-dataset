@@ -56,7 +56,7 @@ def load_challenge_mask(gt_dir: str | Path, name: str) -> np.ndarray:
 
 #: GT exclusion masks stored next to the properties in `challenges/`. They drop GT points
 #: from every evaluation (see `core/masking.py`) and are never scored as a property.
-EXCLUSION_MASKS: tuple[str, ...] = ("excluded", "invisible")
+EXCLUSION_MASKS: tuple[str, ...] = ("excluded",)
 
 
 def list_challenge_masks(gt_dir: str | Path) -> list[str]:
