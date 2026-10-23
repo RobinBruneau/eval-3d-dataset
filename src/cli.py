@@ -534,5 +534,21 @@ def latex(ctx, output, decimals, no_mean):
     click.echo(f"Written to {output}")
 
 
+@main.command()
+@click.option("--spec", "spec_path", required=True, type=click.Path(exists=True),
+              help="Figures specification YAML (example: config/figures/martine_neurips2026.yaml)")
+@click.option("--out", "out_dir", required=True, type=click.Path(), help="Output directory")
+@click.option("--only", multiple=True, type=click.Choice(["prf", "radar", "resolution_views", "tables", "qualitative"]),
+              help="Build only these outputs (repeatable; default: every section of the spec)")
+@click.pass_context
+def figures(ctx, spec_path, out_dir, only):
+    """Build a paper's figures and tables from the eval outputs, as described by a specification."""
+    from .figures.run import run_figures
+    from .figures.spec import load_spec
+
+    run_figures(ctx.obj["config"], load_spec(spec_path), out_dir, list(only) or None)
+    click.echo(f"Written to {out_dir}")
+
+
 if __name__ == "__main__":
     main()

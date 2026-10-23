@@ -56,6 +56,7 @@ eval-pipeline -c $CFG preprocess-gt --clean-gt   # clean + sample the GT mesh (M
 eval-pipeline -c $CFG cleanup                    # carve reconstructions to the silhouettes
 eval-pipeline -c $CFG evaluate                   # Chamfer, coverage, F-score
 eval-pipeline -c $CFG curves -n 100              # dense PR curves
+eval-pipeline -c $CFG figures --spec config/figures/martine_neurips2026.yaml --out figs/  # paper figures
 ```
 
 Full explanation of each stage: [docs/pipeline.md](docs/pipeline.md).
@@ -72,6 +73,7 @@ Full explanation of each stage: [docs/pipeline.md](docs/pipeline.md).
 | [docs/metrics.md](docs/metrics.md) | Every field in `metrics.json`, and why `NaN` is a result. |
 | [docs/datasets.md](docs/datasets.md) | The bundled `config/` files, per dataset, and how to add your own. |
 | [docs/cluster.md](docs/cluster.md) | Running on SLURM via the job templates. |
+| [docs/figures.md](docs/figures.md) | Paper figures and tables (`figures`); the Martine paper's specification as an example. |
 | [CHANGELOG.md](CHANGELOG.md) | The four cross-version result changes, in full. |
 
 ---

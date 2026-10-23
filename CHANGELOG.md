@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+- **`figures` command: a paper's figures and tables from the eval outputs.** The new `src/figures/`
+  package builds pooled precision/recall/F-score curves, a radar per surface property, F-score
+  against views and resolution, the coverage, Chamfer and failures LaTeX tables, and the crops of the
+  qualitative figure. A YAML specification describes the methods (style), the cells that were run,
+  and each output. `config/figures/martine_neurips2026.yaml` is the Martine paper's specification,
+  provided as an example: the methods' eval outputs are not distributed. A declared cell without
+  `metrics.json` is a failure. Radar axes follow the `challenges/*.npy` that are present. See
+  [docs/figures.md](docs/figures.md).
+
 ### Fixed
 - **Masks are read at the nearest pixel centre for AliceVision cameras.** A projected point was
   looked up in a silhouette by truncation (`x.astype(int)`, i.e. pixel `floor(x)`, kept when
