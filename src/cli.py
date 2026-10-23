@@ -77,20 +77,6 @@ def preprocess_challenges(ctx, object_name, force):
             click.echo(f"Skipping {obj}: {e}")
 
 
-@main.command(name="preprocess-taxonomy")
-@click.option("--object", "-o", "object_name", help="Object name (default: all)")
-@click.option("--taxonomy-dir", "-t", type=click.Path(exists=True), required=True,
-              help="Directory containing taxonomy.json + PLY/PNG files")
-@click.option("--force", "-f", is_flag=True, help="Overwrite existing masks")
-@click.pass_context
-def preprocess_taxonomy(ctx, object_name, taxonomy_dir, force):
-    """Generate taxonomy masks (lambertian, specular, etc.) from taxonomy.json."""
-    from .pipeline.preprocess_taxonomy import preprocess_taxonomy as _preprocess
-
-    config = ctx.obj["config"]
-    _preprocess(config, Path(taxonomy_dir), object_name, force)
-
-
 @main.command()
 @click.option("--object", "-o", "object_name", help="Object name (default: all)")
 @click.option("--method", "-m", "method_name", help="Method name (default: all)")
@@ -438,7 +424,7 @@ def visualize(ctx, object_name, method_name, metrics, views, scale, cmap, max_di
 @click.option(
     "--extra-exclude",
     multiple=True,
-    help="Additional GT exclusion mask(s), e.g. 'invisible' -> challenges/invisible.npy",
+    help="Additional GT exclusion mask(s), e.g. 'holes' -> challenges/holes.npy",
 )
 @click.pass_context
 def curves(ctx, object_name, method_name, n_thresholds, max_threshold, force, extra_exclude):
@@ -484,7 +470,7 @@ def curves(ctx, object_name, method_name, n_thresholds, max_threshold, force, ex
 @click.option(
     "--extra-exclude",
     multiple=True,
-    help="Additional GT exclusion mask(s), e.g. 'invisible' -> challenges/invisible.npy",
+    help="Additional GT exclusion mask(s), e.g. 'holes' -> challenges/holes.npy",
 )
 @click.option(
     "--allow-backup-dirs",

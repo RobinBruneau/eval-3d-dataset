@@ -5,7 +5,7 @@ Verifies:
 - gt_pcd.npy exists
 - visibility_count.npy: same length as gt_pcd, max <= 84
 - curvature_values.npy: same length as gt_pcd
-- challenges/*.npy (excluded, taxonomy): same length as gt_pcd
+- challenges/*.npy (excluded, properties): same length as gt_pcd
 - Per-method eval_results/distances/: gt2data_dist.npy and data2gt_dist.npy exist
 """
 
@@ -16,20 +16,6 @@ from pathlib import Path
 import numpy as np
 
 EVAL_ROOT = Path("/home/babrument/dev/alicevision/dataset_temp/eval")
-
-TAXONOMY = {
-    "lambertian": {"01_rock": 1, "02_vase": 1, "03_hammer_head": 1, "10_colander": 1, "11_ecorce": 1,
-                   "13_paw_pad": 2, "17_knife": 2, "19_straw_bob": 1, "21_sneakers": 2, "24_warrior_head": 1,
-                   "25_plant": 1, "28_spine": 1},
-    "not_textured": {"04_candle": 2, "10_colander": 1, "11_ecorce": 1, "22_surgery_drill": 2,
-                     "24_warrior_head": 2, "27_bowl": 1},
-    "transparent": {"07_glass": 1, "09_jam_pot": 2, "13_paw_pad": 2, "15_lego": 2},
-    "specular": {"06_can": 1, "08_boule": 1, "12_assiette": 1, "14_moka": 2, "15_lego": 2,
-                 "16_surgery_scissors": 1, "18_spikes_ball": 1, "22_surgery_drill": 2, "23_whisk": 1,
-                 "26_grid": 1, "27_bowl": 1},
-    "fine_structure": {"04_candle": 2, "16_surgery_scissors": 2, "18_spikes_ball": 2, "22_surgery_drill": 2,
-                       "23_whisk": 2, "26_grid": 1},
-}
 
 SKIP_METHODS = {"Groundtruth", "camera_debug", "slurm_logs", "slurm_scripts", "tables", "debug_cleanup",
                 "curvature_tests"}
@@ -76,17 +62,13 @@ def check_object(obj_dir: Path) -> list[str]:
         if len(e) != pcd_len:
             issues.append(f"excluded: len={len(e)} != pcd={pcd_len}")
 
-    # Taxonomy
-    for challenge, objects in TAXONOMY.items():
-        if obj not in objects:
+    # Properties: every challenges/*.npy must match gt_pcd
+    for npy_path in sorted((gt / "challenges").glob("*.npy")):
+        if npy_path.stem == "excluded":
             continue
-        npy_path = gt / "challenges" / f"{challenge}.npy"
-        if not npy_path.exists():
-            issues.append(f"MISSING challenges/{challenge}.npy")
-        else:
-            arr = np.load(npy_path)
-            if len(arr) != pcd_len:
-                issues.append(f"{challenge}: len={len(arr)} != pcd={pcd_len}")
+        arr = np.load(npy_path)
+        if len(arr) != pcd_len:
+            issues.append(f"{npy_path.stem}: len={len(arr)} != pcd={pcd_len}")
 
     # Per-method distances
     for method_dir in sorted(obj_dir.iterdir()):

@@ -7,6 +7,7 @@ from typing import Optional
 import numpy as np
 
 from ..config import Config
+from ..io.masks import list_challenge_masks
 from ..core.metrics import compute_chamfer, compute_fscore_curve
 
 
@@ -319,11 +320,7 @@ def aggregate_challenges(
 
     challenge_names = set()
     for obj in config.dataset.objects:
-        gt_dir = config.get_gt_artifacts_dir(obj)
-        challenges_dir = gt_dir / "challenges"
-        if challenges_dir.exists():
-            for p in challenges_dir.glob("*.npy"):
-                challenge_names.add(p.stem)
+        challenge_names.update(list_challenge_masks(config.get_gt_artifacts_dir(obj)))
 
     if not challenge_names:
         return results

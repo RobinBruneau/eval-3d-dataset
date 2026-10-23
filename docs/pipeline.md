@@ -47,5 +47,5 @@ cloud came from, the sampling density and the resulting count.
 - `latex` — emit a LaTeX results table from the aggregated metrics.
 - `visualize` — render per-point metric colourings onto the reconstruction (needs OSMesa; see
   the visualization extra in [install](../README.md#install)).
-- `apply-masks`, `preprocess-challenges`, `preprocess-taxonomy` — build and apply the optional
+- `apply-masks`, `preprocess-challenges` — build and apply the optional
   per-point challenge masks described in [configuration](configuration.md#masks).

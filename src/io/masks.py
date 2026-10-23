@@ -54,19 +54,27 @@ def load_challenge_mask(gt_dir: str | Path, name: str) -> np.ndarray:
     return np.load(Path(gt_dir) / "challenges" / f"{name}.npy")
 
 
+#: GT exclusion masks stored next to the properties in `challenges/`. They drop GT points
+#: from every evaluation (see `core/masking.py`) and are never scored as a property.
+EXCLUSION_MASKS: tuple[str, ...] = ("excluded",)
+
+
 def list_challenge_masks(gt_dir: str | Path) -> list[str]:
-    """List available challenge masks.
+    """List the properties (challenges) of an object.
+
+    A property counts for an object iff its `challenges/<property>.npy` exists; a property
+    covering the whole object ships as an all-ones mask. Exclusion masks are not properties.
 
     Args:
         gt_dir: Path to Groundtruth directory.
 
     Returns:
-        List of challenge names (without .npy extension).
+        Sorted challenge names (without .npy extension).
     """
     challenges_dir = Path(gt_dir) / "challenges"
     if not challenges_dir.exists():
         return []
-    return [p.stem for p in challenges_dir.glob("*.npy")]
+    return sorted(p.stem for p in challenges_dir.glob("*.npy") if p.stem not in EXCLUSION_MASKS)
 
 
 def save_visibility_count(gt_dir: str | Path, visibility: np.ndarray) -> None:

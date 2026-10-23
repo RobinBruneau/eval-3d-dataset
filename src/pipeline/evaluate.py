@@ -115,13 +115,8 @@ def evaluate(
     dist_gt2data, idx_gt2data = compute_distances(gt_pcd, data_down)
 
     # Apply GT exclusion mask(s). Shared with recompute/curves via core.masking so the
-    # three code paths can no longer diverge.
-    #
-    # `challenges/invisible.npy` (visibility_count == 0) is in `core.masking.AUTO_EXCLUDE`
-    # and is therefore applied here **unconditionally when the file exists**, with no flag
-    # to pass and no follow-up pass to run. Every cell this function writes carries the
-    # mask by construction; `metrics["exclude_masks"]` below records exactly which files
-    # were used, so the claim is checkable per cell rather than assumed corpus-wide.
+    # three code paths can no longer diverge; `metrics["exclude_masks"]` below records
+    # exactly which files were used.
     exclude, applied_masks = load_gt_exclude(
         gt_dir, n_gt=len(gt_pcd), extra_exclude=extra_exclude
     )
