@@ -45,6 +45,7 @@ cloud came from, the sampling density and the resulting count.
   (`--slurm` to dispatch on a cluster; see [running on a cluster](cluster.md)).
 - `aggregate` — collect per-cell `metrics.json` into summary tables across objects and methods.
 - `latex` — emit a LaTeX results table from the aggregated metrics.
+- `figures` — build a paper's figures and tables from a YAML specification ([figures.md](figures.md)).
 - `visualize` — render per-point metric colourings onto the reconstruction (needs OSMesa; see
   the visualization extra in [install](../README.md#install)).
 - `apply-masks`, `preprocess-challenges` — build and apply the optional

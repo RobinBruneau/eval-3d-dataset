@@ -1,0 +1,173 @@
+# Figures and tables of the Martine paper (NeurIPS 2026 Datasets & Benchmarks, camera-ready).
+#
+#   eval-pipeline -c config/martine.yaml figures --spec config/figures/martine_neurips2026.yaml --out figures_out/
+#
+# The method outputs and their evaluations are not distributed with the dataset: this file is the example to
+# adapt to your own eval outputs (eval_root of the eval config). A cell is the directory
+# <eval_root>/<object>/<method>_<tier>[_v<views>]; a declared cell without eval_results/metrics.json is a failure
+# of the method on that object, a cell that is not declared was not run.
+
+objects: [01_rock, 02_vase, 03_hammer_head, 04_candle, 06_can, 07_glass, 08_boule, 09_jam_pot, 10_colander,
+          11_ecorce, 12_assiette, 13_paw_pad, 14_moka, 15_lego, 16_surgery_scissors, 17_knife, 18_spikes_ball,
+          19_straw_bob, 21_sneakers, 22_surgery_drill, 23_whisk, 24_warrior_head, 25_plant, 26_grid, 27_bowl,
+          28_spine]
+
+# Object names in the tables (LaTeX): the published names.
+object_labels:
+  01_rock: rock
+  02_vase: vase
+  03_hammer_head: 'hammer\_head'
+  04_candle: candle
+  06_can: can
+  07_glass: glass
+  08_boule: 'petanque\_ball'
+  09_jam_pot: 'jam\_pot'
+  10_colander: colander
+  11_ecorce: wood
+  12_assiette: plate
+  13_paw_pad: 'paw\_pad'
+  14_moka: 'moka\_pot'
+  15_lego: lego
+  16_surgery_scissors: 'surgery\_scissors'
+  17_knife: knife
+  18_spikes_ball: 'spikes\_ball'
+  19_straw_bob: 'straw\_hat'
+  21_sneakers: sneakers
+  22_surgery_drill: 'surgery\_saw'
+  23_whisk: whisk
+  24_warrior_head: 'warrior\_head'
+  25_plant: plant
+  26_grid: grid
+  27_bowl: bowl
+  28_spine: spine
+
+# Legend and table order. One hue per family, the second member of a family dashed with a hollow marker.
+methods:
+  meshroom:     {display: Meshroom,     color: '#1845fb', marker: o}
+  realityscan:  {display: RealityScan,  color: '#578dff', marker: s, linestyle: '--', hollow: true}
+  colmap:       {display: COLMAP,       color: '#656364', marker: D}
+  pgsr:         {display: PGSR,         color: '#adad7d', marker: '^'}
+  neus2:        {display: NeuS2,        color: '#c849a9', marker: v}
+  neuralangelo: {display: Neuralangelo, color: '#86c8dd', marker: P, linestyle: '--', hollow: true}
+  rnbneus2:     {display: RNb-NeuS2,    color: '#ff5e02', marker: X}
+  supernormal:  {display: SuperNormal,  color: '#c91f16', marker: h, linestyle: '--', hollow: true}
+
+# d1..d8: full to one-eighth image resolution; view subsets at quarter resolution.
+cells:
+  tiers: [d1, d2, d4, d8]
+  views_tier: d4
+  full_views: 84
+  declared:
+    meshroom:     {tiers: [d1, d4]}
+    realityscan:  {tiers: [d1, d2, d4, d8]}
+    colmap:       {tiers: [d2, d4, d8], views: [40, 20, 10, 5]}
+    pgsr:         {tiers: [d2, d4, d8], views: [40, 20, 10, 5]}
+    neus2:        {tiers: [d2, d4, d8], views: [40, 20, 10, 5]}
+    neuralangelo: {tiers: [d4]}
+    rnbneus2:     {tiers: [d2, d4, d8], views: [40, 20, 10, 5]}
+    supernormal:  {tiers: [d4]}
+
+# matplotlib rcParams: Computer Modern as in the paper, neutral inks so that the method colours carry the figure.
+style:
+  text.usetex: false
+  font.family: serif
+  font.serif: [cmr10]
+  axes.formatter.use_mathtext: true
+  mathtext.fontset: cm
+  font.size: 8
+  axes.labelsize: 9
+  axes.titlesize: 9
+  legend.fontsize: 7
+  xtick.labelsize: 7
+  ytick.labelsize: 7
+  figure.dpi: 300
+  savefig.dpi: 300
+  savefig.bbox: tight
+  savefig.pad_inches: 0.02
+  axes.labelpad: 1
+  xtick.major.pad: 2
+  ytick.major.pad: 2
+  axes.prop_cycle: "cycler('color', ['#1845fb', '#578dff', '#656364', '#adad7d', '#c849a9', '#86c8dd', '#ff5e02', '#c91f16'])"
+  text.color: '#222222'
+  axes.labelcolor: '#222222'
+  axes.titlecolor: '#222222'
+  xtick.color: '#555555'
+  ytick.color: '#555555'
+  axes.edgecolor: '#555555'
+  axes.linewidth: 0.7
+  grid.color: '#cccccc'
+  grid.linewidth: 0.6
+  legend.frameon: false
+  lines.markersize: 5
+  lines.linewidth: 1.8
+  figure.facecolor: white
+  axes.facecolor: white
+  savefig.facecolor: white
+
+prf:
+  methods: [meshroom, realityscan, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]
+  tier: d4
+  max_threshold: 4.0
+  n_thresholds: 201
+  report: [0.25, 0.5, 1.0]
+  rc: {axes.labelsize: 10, axes.titlesize: 10}
+  output: prf_curves.pdf
+
+# One representative per family.
+radar:
+  methods: [realityscan, colmap, pgsr, neus2, rnbneus2]
+  tier: d4
+  threshold: 0.5
+  properties: [lambertian, specular, transparent, not_textured, fine_structure]
+  attributes:
+    - {key: high_curvature, attribute: curvature_values, lt: -0.2}   # strong convexity (edges, ridges)
+    - {key: low_visibility, attribute: visibility_count, ge: 1, le: 3}
+  labels:
+    lambertian: Lambertian
+    specular: Specular
+    transparent: Transparent
+    not_textured: Textureless
+    fine_structure: Fine structure
+    high_curvature: High curvature
+    low_visibility: Low visibility
+  output: radar_chart_050mm.pdf
+
+resolution_views:
+  object: 02_vase
+  methods: [realityscan, colmap, pgsr, neus2, rnbneus2]
+  threshold: 1.0
+  views: [5, 10, 20, 40, 84]
+  tiers: [d1, d2, d4, d8]
+  tier_labels: {d1: "Full\n9568x6376", d2: "Half\n4784x3188", d4: "Quarter\n2392x1594", d8: "Eighth\n1196x797"}
+  output: resolution_views.pdf
+
+tables:
+  coverage:
+    methods: [realityscan, colmap, pgsr, neus2, rnbneus2]
+    views: [all, 40, 20, 10, 5]
+    tiers: [d1, d2, d4, d8]
+    caption: 'Number of objects reconstructed (out of 26) per method, for each subset of input views at quarter resolution (d4) and for each image resolution with all 84 views. A missing reconstruction is a failure of the method (Table~\ref{tab:failures}). --: configuration not run.'
+    label: 'tab:coverage'
+    output: acquisition_coverage.tex
+  chamfer:
+    methods: [meshroom, realityscan, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]
+    tiers: [d1, d2, d4, d8]
+    caption: 'Chamfer distance (mm, Eq.~\ref{eq:chamfer}) per object, method and image resolution (d1 to d8: full to one-eighth resolution), with all 84 views. \textbf{Bold}: best per row, \underline{underline}: second best. --: failure of the method (no reconstruction, Table~\ref{tab:failures}). The mean is taken over the reconstructed objects only, whose number is given in the last row; means over different object sets are not directly comparable.'
+    label: 'tab:chamfer'
+    output: all_cd.tex
+  failures:
+    caption: 'Failed reconstructions per configuration. COLMAP and PGSR fail when structure from motion on the images of the configuration alone yields no usable sparse model (single attempt, default settings, no fallback); the other failures are runs that produced no mesh. Failed objects are excluded from all aggregated scores and declared as $n/26$ in the captions.'
+    label: 'tab:failures'
+    output: failures.tex
+
+# Renders made beforehand, for each object x method cell, by
+#   eval-pipeline -c <config> visualize -o <object> -m <cell> --metrics accuracy,uniform --views <view index>
+#     --cmap cividis --max-dist 4 --exclude-mode remove --no-integrated-colorbar
+qualitative:
+  methods: [realityscan, colmap, pgsr, neus2, rnbneus2]
+  tier: d4
+  views: {03_hammer_head: view_006.png, 22_surgery_drill: view_080.png, 07_glass: view_009.png, 15_lego: view_082.png}
+  render_dir: visualizations_remove/accuracy
+  margin: 10
+  output_dir: qualitative
+  colorbar: {vmin: 0, vmax: 4, cmap: cividis, label: Accuracy error (mm), output: qualitative_colorbar.pdf}
