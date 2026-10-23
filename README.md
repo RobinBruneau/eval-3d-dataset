@@ -91,14 +91,16 @@ headless environment. Everything else must pass.
 
 This pipeline evaluates **geometry**: Chamfer distance, precision/recall/F-score, coverage.
 
-**Region-restricted evaluation (taxonomy).** By supplying a *taxonomy* — 3D masks defined on the
-ground-truth mesh (attribute/material zones such as lambertian, specular, …), generated with
-`preprocess-taxonomy` from a `taxonomy.json` — the same metrics are computed **per zone** instead
-of over the whole surface. You can therefore score reconstruction quality on precise parts of an
+**Region-restricted evaluation (properties).** By supplying per-point property masks on the
+ground truth — `challenges/‹property›.npy` (lambertian, specular, …) — the same metrics are
+computed **per zone** instead of over the whole surface. A property counts for an object **if and
+only if its `.npy` exists**; a property covering the whole object ships as an all-ones mask. GT
+points in `challenges/excluded.npy` (unreliable GT zones) are never evaluated, in any zone. You can therefore score reconstruction quality on precise parts of an
 object (a labelled region, thin structures, cavities, …) rather than as a single global number.
 
 **Adding your own challenge.** A *challenge* is a named region of an object that is scored
-separately (e.g. `excluded`, `lambertian`, or any name you pick). The name is **chosen by you and
+separately (e.g. `lambertian`, or any name you pick; `excluded` and `invisible` are reserved for
+exclusion masks). The name is **chosen by you and
 taken from the file name** — the pipeline discovers challenges from files, so there is nothing to
 list by hand. To add one:
 

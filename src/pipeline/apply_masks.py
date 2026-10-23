@@ -159,12 +159,23 @@ def apply_challenge_masks(
     distances = load_distances(eval_dir)
     zones_dir.mkdir(parents=True, exist_ok=True)
 
+    # `excluded.npy` marks unreliable GT zones: never evaluated, whatever the property.
+    excluded_path = gt_dir / "challenges" / "excluded.npy"
+    excluded = np.load(excluded_path).astype(bool) if excluded_path.exists() else None
+
     for name in challenge_names:
         out_path = zones_dir / f"{name}.npz"
         if out_path.exists() and not force:
             continue
 
-        gt_mask = load_challenge_mask(gt_dir, name)
+        gt_mask = load_challenge_mask(gt_dir, name).astype(bool)
+        if excluded is not None:
+            if len(excluded) != len(gt_mask):
+                raise ValueError(
+                    f"{gt_dir}/challenges: excluded.npy has {len(excluded)} points, "
+                    f"{name}.npy has {len(gt_mask)}. Refusing to guess."
+                )
+            gt_mask &= ~excluded
         zone_dist = apply_gt_mask(
             gt_mask,
             distances["gt2data_dist"],
