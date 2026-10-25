@@ -17,6 +17,8 @@ def test_martine_example_spec_loads():
     spec = load_spec(REPO / "config" / "figures" / "martine_neurips2026.yaml")
     assert list(spec.methods)[:2] == ["meshroom", "realityscan"]
     assert spec.radar.threshold == 0.5 and spec.prf.n_thresholds == 201
+    # RealityScan view subsets at d4 (Linux rerun, 25/10/2026), as for COLMAP, PGSR, NeuS2 and RNb-NeuS2
+    assert spec.cells.declared["realityscan"].views == [40, 20, 10, 5]
 
 
 def test_unknown_method_in_a_figure_is_rejected():

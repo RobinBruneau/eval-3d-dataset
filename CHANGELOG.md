@@ -12,6 +12,11 @@
   `metrics.json` is a failure. Radar axes follow the `challenges/*.npy` that are present. See
   [docs/figures.md](docs/figures.md).
 
+### Changed
+- **Martine figures specification: RealityScan view subsets.** `config/figures/martine_neurips2026.yaml`
+  declares RealityScan at 40, 20, 10 and 5 views (d4), from the RealityScan Linux rerun. The coverage
+  table, the failures table and the views/resolution figure now include them.
+
 ### Fixed
 - **Masks are read at the nearest pixel centre for AliceVision cameras.** A projected point was
   looked up in a silhouette by truncation (`x.astype(int)`, i.e. pixel `floor(x)`, kept when

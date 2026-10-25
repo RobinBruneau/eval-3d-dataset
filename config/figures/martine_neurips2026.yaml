@@ -59,7 +59,7 @@ cells:
   full_views: 84
   declared:
     meshroom:     {tiers: [d1, d4]}
-    realityscan:  {tiers: [d1, d2, d4, d8]}
+    realityscan:  {tiers: [d1, d2, d4, d8], views: [40, 20, 10, 5]}
     colmap:       {tiers: [d2, d4, d8], views: [40, 20, 10, 5]}
     pgsr:         {tiers: [d2, d4, d8], views: [40, 20, 10, 5]}
     neus2:        {tiers: [d2, d4, d8], views: [40, 20, 10, 5]}
