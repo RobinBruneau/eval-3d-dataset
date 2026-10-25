@@ -29,8 +29,9 @@ A **cell** is one configuration of a method: `<method>_<tier>` (all views) or
 `<method>_<tier>_v<views>` (a subset of views at `cells.views_tier`). The directory patterns are
 `cells.dir` and `cells.views_dir`.
 
-- A cell listed under `cells.declared` but without `metrics.json` for an object is a **failure** of
-  the method on that object. It is drawn as a cross, written as `--` in the Chamfer table and listed
+- A cell listed under `cells.declared` but without `metrics.json` for an object, or whose
+  `metrics.json` records an empty reconstruction (`empty_reconstruction`: a mesh with no vertex), is
+  a **failure** of the method on that object. It is drawn as a cross, written as `--` in the Chamfer table and listed
   in the failures table. The object is left out of every pooled score.
 - A cell that is not declared was **not run**. It is written as `--` in the coverage table and not
   drawn, and it is never counted as a failure.
