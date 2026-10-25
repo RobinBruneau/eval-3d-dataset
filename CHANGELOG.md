@@ -12,6 +12,11 @@
   `metrics.json` is a failure. Radar axes follow the `challenges/*.npy` that are present. See
   [docs/figures.md](docs/figures.md).
 
+### Changed
+- **Martine figures specification: RealityScan view subsets.** `config/figures/martine_neurips2026.yaml`
+  declares RealityScan at 40, 20, 10 and 5 views (d4), from the RealityScan Linux rerun. The coverage
+  table, the failures table and the views/resolution figure now include them.
+
 ### Fixed
 - **`figures`: an empty reconstruction is a failure.** `evaluate` writes a `metrics.json` with
   `empty_reconstruction: true` (NaN scores) for a mesh with no vertex; `figures` counted that cell as
