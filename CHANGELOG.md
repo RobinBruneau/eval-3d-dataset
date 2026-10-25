@@ -13,6 +13,11 @@
   [docs/figures.md](docs/figures.md).
 
 ### Fixed
+- **`figures`: an empty reconstruction is a failure.** `evaluate` writes a `metrics.json` with
+  `empty_reconstruction: true` (NaN scores) for a mesh with no vertex; `figures` counted that cell as
+  reconstructed (coverage table, `n/26`) and pooled its object. It is now a failure like a missing
+  `metrics.json`: a cross in the plots, `--` in the Chamfer table, listed in the failures table, and
+  left out of every pooled score.
 - **Masks are read at the nearest pixel centre for AliceVision cameras.** A projected point was
   looked up in a silhouette by truncation (`x.astype(int)`, i.e. pixel `floor(x)`, kept when
   `0 <= x < w`). AliceVision SfMData cameras — the Martine `eval_cameras.sfm` — put the centre of

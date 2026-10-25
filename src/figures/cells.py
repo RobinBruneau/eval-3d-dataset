@@ -1,7 +1,8 @@
 """Per-object results of the declared cells, read from each cell's metrics.json.
 
-Status rule: a declared cell whose metrics.json is absent for an object is a failure of the method on that object
-(no reconstruction); an undeclared cell was never run and is reported as such, never as a failure.
+Status rule: a declared cell whose metrics.json is absent for an object, or records an empty reconstruction (a mesh
+with no vertex: `empty_reconstruction`, written by evaluate), is a failure of the method on that object; an undeclared
+cell was never run and is reported as such, never as a failure.
 """
 
 import json
@@ -31,7 +32,8 @@ class Results:
         key = (obj, self.spec.cell_dir(cell))
         if key not in self._metrics:
             path = self.eval_dir(obj, cell) / "metrics.json"
-            self._metrics[key] = json.loads(path.read_text()) if path.is_file() else None
+            m = json.loads(path.read_text()) if path.is_file() else None
+            self._metrics[key] = None if m is not None and m.get("empty_reconstruction") else m
         return self._metrics[key]
 
     def ok(self, obj: str, cell: Cell) -> bool:

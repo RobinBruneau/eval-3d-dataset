@@ -50,3 +50,18 @@ def test_nan_chamfer_is_missing(tmp_path):
     config = make_config(tmp_path)
     make_cell(config, "obj1", "alpha_d4", chamfer=float("nan"))
     assert Results(config, make_spec()).chamfer("obj1", Cell("alpha", "d4")) is None
+
+
+def test_empty_reconstruction_is_a_failure(tmp_path):
+    """evaluate writes metrics.json for a mesh with no vertices (empty_reconstruction: true): still a failure."""
+    import json
+    config = make_config(tmp_path)
+    make_cell(config, "obj1", "alpha_d4")
+    ev = make_cell(config, "obj2", "alpha_d4", chamfer=float("nan"))
+    m = json.loads((ev / "metrics.json").read_text())
+    (ev / "metrics.json").write_text(json.dumps({**m, "empty_reconstruction": True}))
+    res = Results(config, make_spec())
+    c = Cell("alpha", "d4")
+    assert res.ok("obj1", c) and not res.ok("obj2", c)
+    assert res.n_ok(c) == 1 and res.failures(c) == ["obj2"]
+    assert res.metrics("obj2", c) is None and res.fscore_at("obj2", c, 0.5) is None
