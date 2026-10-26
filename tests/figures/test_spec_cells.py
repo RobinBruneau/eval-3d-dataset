@@ -15,7 +15,10 @@ REPO = Path(__file__).resolve().parents[2]
 
 def test_martine_example_spec_loads():
     spec = load_spec(REPO / "config" / "figures" / "martine_neurips2026.yaml")
-    assert list(spec.methods)[:2] == ["meshroom", "realityscan"]
+    # legend order: RealityScan leads the photogrammetry family; the tables keep their own order
+    assert list(spec.methods)[:2] == ["realityscan", "meshroom"]
+    paper_order = ["meshroom", "realityscan", "colmap", "pgsr", "neus2", "neuralangelo", "rnbneus2", "supernormal"]
+    assert spec.tables.chamfer.methods == paper_order and spec.tables.failures.methods == paper_order
     assert spec.radar.threshold == 0.5 and spec.prf.n_thresholds == 201
     # RealityScan view subsets at d4 (Linux rerun, 25/10/2026), as for COLMAP, PGSR, NeuS2 and RNb-NeuS2
     assert spec.cells.declared["realityscan"].views == [40, 20, 10, 5]

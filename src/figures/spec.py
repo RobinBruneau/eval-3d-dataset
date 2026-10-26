@@ -49,6 +49,7 @@ class PRFSpec(BaseModel):
     max_threshold: float = 4.0
     n_thresholds: int = 201
     report: list[float] = Field(default_factory=lambda: [0.25, 0.5, 1.0], description="Thresholds printed")
+    figsize: tuple[float, float] = Field((10, 2.2), description="Figure size (inches): three panels side by side")
     rc: dict = Field(default_factory=dict)
     output: str
 

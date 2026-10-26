@@ -55,3 +55,23 @@ def test_figures_command_writes_tables_and_numbers(tmp_path):
     assert (out / "failures.tex").is_file() and (out / "prf.pdf").is_file()
     numbers = json.loads((out / "numbers.json").read_text())
     assert numbers["prf"]["methods"]["alpha"]["fscore"] == [0.0, 1.0, 1.0]
+
+
+def _prf_numbers():
+    curve = [0.0, 0.5, 1.0]
+    return {"thresholds": [0.0, 0.5, 1.0],
+            "methods": {"alpha": {"precision": curve, "recall": curve, "fscore": curve}}}
+
+
+def test_prf_figure_size_from_the_spec(tmp_path):
+    """figsize (inches) is read from the spec; the default keeps the paper's 10 x 2.2 strip."""
+    from PIL import Image
+
+    from src.figures import prf
+    base = {"methods": ["alpha"], "tier": "d4", "max_threshold": 1.0, "n_thresholds": 3, "output": "prf.pdf"}
+    prf.plot(make_spec(prf=base), _prf_numbers(), tmp_path)
+    assert Image.open(tmp_path / "prf.png").size == (2000, 440)
+    tall = tmp_path / "tall"
+    tall.mkdir()
+    prf.plot(make_spec(prf={**base, "figsize": [10, 5]}), _prf_numbers(), tall)
+    assert Image.open(tall / "prf.png").size == (2000, 1000)
