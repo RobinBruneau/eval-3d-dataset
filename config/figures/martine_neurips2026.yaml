@@ -111,8 +111,8 @@ prf:
   max_threshold: 4.0
   n_thresholds: 201
   report: [0.25, 0.5, 1.0]
-  figsize: [10, 5]   # tall panels, full text width: the methods' curves stay apart
-  rc: {axes.labelsize: 10, axes.titlesize: 10, lines.linewidth: 1.0}
+  figsize: [10, 3.5]   # taller panels, full text width: the methods' curves stay apart
+  rc: {axes.labelsize: 10, axes.titlesize: 10, lines.linewidth: 1.2}
   output: prf_curves.pdf
 
 # One representative per family.

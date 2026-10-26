@@ -15,8 +15,8 @@
 ### Changed
 - **`figures`: size of the PRF figure in the specification** (`prf.figsize`, inches; default 10 x 2.2,
   the former fixed size, output unchanged). The vertical margins are now fixed in inches.
-- **Martine figures specification: taller PRF figure, new palette, viridis.** PRF at 10 x 5 in with
-  1.0 pt lines. Methods palette: one colour per family; the first member is solid with a filled
+- **Martine figures specification: taller PRF figure, new palette, viridis.** PRF at 10 x 3.5 in with
+  1.2 pt lines. Methods palette: one colour per family; the first member is solid with a filled
   marker, the second dashed with a hollow one; RealityScan now leads the photogrammetry family in the
   legends. The tables keep their order (`tables.failures.methods` is now explicit). Qualitative
   renders and colorbar: viridis instead of cividis.
