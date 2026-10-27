@@ -13,6 +13,11 @@
   [docs/figures.md](docs/figures.md).
 
 ### Changed
+- **`figures`: F-score in the Chamfer table.** `tables.chamfer.fscore` adds the F-score (%) at one
+  threshold, ranked on its own (highest in bold), either in each cell as 'CD / F' (`layout: cell`) or
+  as a second block below the Chamfer one (`layout: stacked`); `method_tiers` restricts the tiers of a
+  method. The Martine specification reports CD / F at 0.5 mm, in the PRF legend order, Meshroom at d4
+  only.
 - **`figures`: size of the PRF figure in the specification** (`prf.figsize`, inches; default 10 x 2.2,
   the former fixed size, output unchanged). The vertical margins are now fixed in inches.
 - **Martine figures specification: taller PRF figure, new palette, viridis.** PRF at 10 x 3.5 in with

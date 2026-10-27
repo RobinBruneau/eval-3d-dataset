@@ -46,7 +46,7 @@ A **cell** is one configuration of a method: `<method>_<tier>` (all views) or
 | `radar` | `radar_chart_*.pdf` | F-score at one threshold per surface property and per attribute range |
 | `resolution_views` | `resolution_views.pdf` | F-score of one object against the number of views and the image resolution |
 | `tables.coverage` | `.tex` | objects reconstructed per method and configuration |
-| `tables.chamfer` | `.tex` | Chamfer distance per object and method × resolution (best in bold, second underlined) |
+| `tables.chamfer` | `.tex` | Chamfer distance per object and method × resolution (best in bold, second underlined); optionally the F-score at one threshold (`fscore`), as 'CD / F' cells or a second block (`layout`), each metric ranked on its own; `method_tiers` restricts a method's tiers |
 | `tables.failures` | `.tex` | failed configurations and their objects |
 | `qualitative` | `qualitative/<object>_<method>.png`, colorbar PDF | error renders padded for the paper |
 

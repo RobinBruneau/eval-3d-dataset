@@ -5,7 +5,7 @@ names no path: every input is found through the eval config (eval_root, gt_artif
 """
 
 from pathlib import Path
-from typing import NamedTuple, Optional, Union
+from typing import Literal, NamedTuple, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
@@ -96,6 +96,11 @@ class CoverageTable(BaseModel):
 class ChamferTable(BaseModel):
     methods: list[str]
     tiers: list[str]
+    method_tiers: dict[str, list[str]] = Field(default_factory=dict,
+                                               description="Tiers of a method, in place of `tiers`")
+    fscore: Optional[float] = Field(default=None, description="Also report the F-score (%) at this threshold (mm)")
+    layout: Literal["cell", "stacked"] = Field(
+        default="cell", description="With `fscore`: 'CD / F' in each cell, or a CD block above an F block")
     caption: str
     label: str
     output: str

@@ -152,9 +152,12 @@ tables:
     label: 'tab:coverage'
     output: acquisition_coverage.tex
   chamfer:
-    methods: [meshroom, realityscan, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]
+    methods: [realityscan, meshroom, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]   # PRF legend order
     tiers: [d1, d2, d4, d8]
-    caption: 'Chamfer distance (mm, Eq.~\ref{eq:chamfer}) per object, method and image resolution (d1 to d8: full to one-eighth resolution), with all 84 views. \textbf{Bold}: best per row, \underline{underline}: second best. --: failure of the method (no reconstruction, Table~\ref{tab:failures}). The mean is taken over the reconstructed objects only, whose number is given in the last row; means over different object sets are not directly comparable.'
+    method_tiers: {meshroom: [d4]}
+    fscore: 0.5          # same threshold as the text (Sec. 4.3)
+    layout: cell         # 'CD / F' in each cell; stacked: a CD block above an F block
+    caption: 'Chamfer distance (mm, Eq.~\ref{eq:chamfer}) / F-score at 0.5~mm (\%) per object, method and image resolution (d1 to d8: full to one-eighth resolution), with all 84 views; Meshroom at d4 only. \textbf{Bold}: best per row, \underline{underline}: second best, for each metric separately (lowest Chamfer distance, highest F-score). --: failure of the method (no reconstruction, Table~\ref{tab:failures}). The means are taken over the reconstructed objects only, whose number is given in the last row; means over different object sets are not directly comparable.'
     label: 'tab:chamfer'
     output: all_cd.tex
   failures:
