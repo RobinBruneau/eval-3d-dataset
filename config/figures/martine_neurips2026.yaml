@@ -41,16 +41,17 @@ object_labels:
   27_bowl: bowl
   28_spine: spine
 
-# Legend and table order. One hue per family, the second member of a family dashed with a hollow marker.
+# Legend order. One hue per family: the first member solid with a filled marker, the second dashed with a hollow
+# marker; RealityScan represents the photogrammetry family. The tables list their methods in their own order.
 methods:
-  meshroom:     {display: Meshroom,     color: '#1845fb', marker: o}
-  realityscan:  {display: RealityScan,  color: '#578dff', marker: s, linestyle: '--', hollow: true}
-  colmap:       {display: COLMAP,       color: '#656364', marker: D}
-  pgsr:         {display: PGSR,         color: '#adad7d', marker: '^'}
-  neus2:        {display: NeuS2,        color: '#c849a9', marker: v}
-  neuralangelo: {display: Neuralangelo, color: '#86c8dd', marker: P, linestyle: '--', hollow: true}
-  rnbneus2:     {display: RNb-NeuS2,    color: '#ff5e02', marker: X}
-  supernormal:  {display: SuperNormal,  color: '#c91f16', marker: h, linestyle: '--', hollow: true}
+  realityscan:  {display: RealityScan, color: '#003d5c', marker: s}
+  meshroom:     {display: Meshroom, color: '#003d5c', marker: o, linestyle: '--', hollow: true}
+  colmap:       {display: COLMAP, color: '#5749a5', marker: D}
+  pgsr:         {display: PGSR, color: '#b35280', marker: '^'}
+  neus2:        {display: NeuS2, color: '#f64a4b', marker: v}
+  neuralangelo: {display: Neuralangelo, color: '#f64a4b', marker: P, linestyle: '--', hollow: true}
+  rnbneus2:     {display: RNb-NeuS2, color: '#f8a700', marker: X}
+  supernormal:  {display: SuperNormal, color: '#f8a700', marker: h, linestyle: '--', hollow: true}
 
 # d1..d8: full to one-eighth image resolution; view subsets at quarter resolution.
 cells:
@@ -87,7 +88,7 @@ style:
   axes.labelpad: 1
   xtick.major.pad: 2
   ytick.major.pad: 2
-  axes.prop_cycle: "cycler('color', ['#1845fb', '#578dff', '#656364', '#adad7d', '#c849a9', '#86c8dd', '#ff5e02', '#c91f16'])"
+  axes.prop_cycle: "cycler('color', ['#003d5c', '#003d5c', '#5749a5', '#b35280', '#f64a4b', '#f64a4b', '#f8a700', '#f8a700'])"
   text.color: '#222222'
   axes.labelcolor: '#222222'
   axes.titlecolor: '#222222'
@@ -105,12 +106,13 @@ style:
   savefig.facecolor: white
 
 prf:
-  methods: [meshroom, realityscan, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]
+  methods: [realityscan, meshroom, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]
   tier: d4
   max_threshold: 4.0
   n_thresholds: 201
   report: [0.25, 0.5, 1.0]
-  rc: {axes.labelsize: 10, axes.titlesize: 10}
+  figsize: [10, 3.5]   # taller panels, full text width: the methods' curves stay apart
+  rc: {axes.labelsize: 10, axes.titlesize: 10, lines.linewidth: 1.2}
   output: prf_curves.pdf
 
 # One representative per family.
@@ -156,13 +158,14 @@ tables:
     label: 'tab:chamfer'
     output: all_cd.tex
   failures:
+    methods: [meshroom, realityscan, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]
     caption: 'Failed reconstructions per configuration. COLMAP and PGSR fail when structure from motion on the images of the configuration alone yields no usable sparse model (single attempt, default settings, no fallback); the other failures are runs that produced no mesh. Failed objects are excluded from all aggregated scores and declared as $n/26$ in the captions.'
     label: 'tab:failures'
     output: failures.tex
 
 # Renders made beforehand, for each object x method cell, by
 #   eval-pipeline -c <config> visualize -o <object> -m <cell> --metrics accuracy,uniform --views <view index>
-#     --cmap cividis --max-dist 4 --exclude-mode remove --no-integrated-colorbar
+#     --cmap viridis --max-dist 4 --exclude-mode remove --no-integrated-colorbar
 qualitative:
   methods: [realityscan, colmap, pgsr, neus2, rnbneus2]
   tier: d4
@@ -170,4 +173,4 @@ qualitative:
   render_dir: visualizations_remove/accuracy
   margin: 10
   output_dir: qualitative
-  colorbar: {vmin: 0, vmax: 4, cmap: cividis, label: Accuracy error (mm), output: qualitative_colorbar.pdf}
+  colorbar: {vmin: 0, vmax: 4, cmap: viridis, label: Accuracy error (mm), output: qualitative_colorbar.pdf}

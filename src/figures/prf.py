@@ -41,7 +41,8 @@ def plot(spec: FiguresSpec, numbers: dict, out_dir: Path) -> Path:
     s = spec.prf
     apply_style(spec, s.rc)
     thresholds = np.asarray(numbers["thresholds"])
-    fig, axes = plt.subplots(1, 3, figsize=(10, 2.2))
+    width, height = s.figsize
+    fig, axes = plt.subplots(1, 3, figsize=(width, height))
     curve_keys = ["precision", "recall", "fscore"]
     titles = ["Precision (%)", "Recall (%)", "F-score (%)"]
     for i, (ax, key, title) in enumerate(zip(axes, curve_keys, titles)):
@@ -63,7 +64,8 @@ def plot(spec: FiguresSpec, numbers: dict, out_dir: Path) -> Path:
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower center", ncol=len(labels), frameon=False, fontsize=9,
                bbox_to_anchor=(0.5, -0.02))
-    plt.subplots_adjust(wspace=0.08, left=0.06, right=0.99, top=0.90, bottom=0.28)
+    # vertical margins fixed in inches (titles above, legend and tau label below), whatever the height
+    plt.subplots_adjust(wspace=0.08, left=0.06, right=0.99, top=1 - 0.22 / height, bottom=0.616 / height)
     path = Path(out_dir) / s.output
     fig.savefig(path)
     fig.savefig(path.with_suffix(".png"), dpi=200)

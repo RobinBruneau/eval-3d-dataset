@@ -13,6 +13,13 @@
   [docs/figures.md](docs/figures.md).
 
 ### Changed
+- **`figures`: size of the PRF figure in the specification** (`prf.figsize`, inches; default 10 x 2.2,
+  the former fixed size, output unchanged). The vertical margins are now fixed in inches.
+- **Martine figures specification: taller PRF figure, new palette, viridis.** PRF at 10 x 3.5 in with
+  1.2 pt lines. Methods palette: one colour per family; the first member is solid with a filled
+  marker, the second dashed with a hollow one; RealityScan now leads the photogrammetry family in the
+  legends. The tables keep their order (`tables.failures.methods` is now explicit). Qualitative
+  renders and colorbar: viridis instead of cividis.
 - **Martine figures specification: RealityScan view subsets.** `config/figures/martine_neurips2026.yaml`
   declares RealityScan at 40, 20, 10 and 5 views (d4), from the RealityScan Linux rerun. The coverage
   table, the failures table and the views/resolution figure now include them.
