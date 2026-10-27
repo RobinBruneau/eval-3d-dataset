@@ -3,7 +3,7 @@
 from src.figures.cells import Results
 from src.figures.tables import chamfer_table, coverage_table, failures_table
 
-from .helpers import make_cell, make_config, make_spec
+from .helpers import make_cell, make_config, make_gt, make_spec
 
 TABLES = {
     "object_labels": {"obj1": "first\\_obj"},
@@ -54,3 +54,56 @@ def test_failures_ordered_dense_to_sparse(tmp_path):
     tex = failures_table(spec, res)
     lines = [l for l in tex.splitlines() if "/2 &" in l]
     assert lines == ["Alpha d2 & 1/2 & obj2 \\\\", "Alpha d4, 10 views & 1/2 & obj2 \\\\"]
+
+
+# CD and F at 0.5 per cell in metrics.json, and the point distances that the pooled Mean row is computed from:
+# alpha d4 pooled P = 2/8, R = 5/8 -> F = 35.7 (per-object mean 50.0), CD = (0.7 + 0.4) / 2 = 0.550 (mean 0.300);
+# beta d4 P = 1, R = 6/8 -> F = 85.7, CD = (0.1 + 0.3) / 2 = 0.200.
+CELLS = (("obj1", "alpha_d2", 0.3, 0.4, [0.1], [0.1] * 4),
+         ("obj1", "alpha_d4", 0.2, 0.7, [0.1] * 2, [0.1] * 4),
+         ("obj1", "beta_d4", 0.1, 0.6, [0.1], [0.1, 0.1, 0.9, 0.9]),
+         ("obj2", "alpha_d4", 0.4, 0.5, [0.9] * 6, [0.1, 0.9, 0.9, 0.9]),
+         ("obj2", "beta_d4", 0.5, 0.8, [0.1], [0.1] * 4))
+
+
+def _cd_f_results(tmp_path, **chamfer):
+    config = make_config(tmp_path)
+    for obj in ("obj1", "obj2"):
+        make_gt(config, obj, 4)
+    for obj, cell, cd, f, d2g, g2d in CELLS:
+        make_cell(config, obj, cell, d2g=d2g, g2d=g2d, idx=[0] * len(d2g), chamfer=cd, fscore=(f, 0.9))
+    tables = {**TABLES["tables"], "chamfer": {**TABLES["tables"]["chamfer"], "method_tiers": {"alpha": ["d4"]},
+                                              "fscore": 0.5, "mean": "pooled", **chamfer}}
+    spec = make_spec(object_labels=TABLES["object_labels"], tables=tables)
+    return spec, Results(config, spec)
+
+
+def test_chamfer_and_fscore_in_each_cell(tmp_path):
+    spec, res = _cd_f_results(tmp_path)
+    tex = chamfer_table(spec, res)
+    assert "Object & d4 & d4 \\\\" in tex  # alpha restricted to d4: its d2 column is gone
+    # each metric ranked on its own: lowest CD, highest F
+    assert "first\\_obj & \\underline{0.200} / \\textbf{70.0} & \\textbf{0.100} / \\underline{60.0} \\\\" in tex
+    assert "obj2 & \\textbf{0.400} / \\underline{50.0} & \\underline{0.500} / \\textbf{80.0} \\\\" in tex
+    # Mean row: the objects' point distances pooled, for CD and F
+    assert "\\textit{Mean} & 0.550 / 35.7 & 0.200 / 85.7 \\\\" in tex
+    assert "\\textit{Reconstructed} & 2/2 & 2/2 \\\\" in tex
+    assert tex.startswith("\\begin{table}") and "\\resizebox{\\textwidth}" in tex
+
+
+def test_chamfer_and_fscore_stacked(tmp_path):
+    spec, res = _cd_f_results(tmp_path, layout="stacked")
+    lines = chamfer_table(spec, res).splitlines()
+    cd = lines.index("\\multicolumn{3}{c}{Chamfer distance (mm) $\\downarrow$} \\\\")
+    f = lines.index("\\multicolumn{3}{c}{F-score at 0.5~mm (\\%) $\\uparrow$} \\\\")
+    assert cd < lines.index("first\\_obj & \\underline{0.200} & \\textbf{0.100} \\\\") < f
+    assert f < lines.index("first\\_obj & \\textbf{70.0} & \\underline{60.0} \\\\")
+    assert lines.index("\\textit{Mean} & 0.550 & 0.200 \\\\") < f < lines.index("\\textit{Mean} & 35.7 & 85.7 \\\\")
+    assert lines.count("\\textit{Reconstructed} & 2/2 & 2/2 \\\\") == 2
+
+
+def test_chamfer_sideways(tmp_path):
+    spec, res = _cd_f_results(tmp_path, sideways=True)
+    tex = chamfer_table(spec, res)
+    assert tex.startswith("\\begin{sidewaystable}") and tex.endswith("\\end{sidewaystable}\n")
+    assert "\\resizebox{\\textheight}{!}{%" in tex

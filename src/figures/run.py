@@ -1,6 +1,7 @@
 """Build every figure and table of a specification, and save the numbers behind them in numbers.json."""
 
 import json
+from functools import partial
 from pathlib import Path
 
 from ..config import Config
@@ -37,9 +38,10 @@ def run_figures(config: Config, spec: FiguresSpec, out_dir: str | Path, only: li
         resolution_views.plot(spec, data, out)
     if "tables" in wanted:
         print("== tables")
-        for name, build in (("coverage", tables.coverage_table), ("chamfer", tables.chamfer_table),
-                            ("failures", tables.failures_table)):
-            section = getattr(spec.tables, name)
+        builds = [(spec.tables.coverage, tables.coverage_table)]
+        builds += [(t, partial(tables.chamfer_table, table=t)) for t in spec.tables.chamfer_tables]
+        builds += [(spec.tables.failures, tables.failures_table)]
+        for section, build in builds:
             if section is not None:
                 (out / section.output).write_text(build(spec, results))
                 print(f"  {section.output}")

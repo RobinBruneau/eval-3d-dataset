@@ -1,7 +1,13 @@
 """LaTeX tables (booktabs): objects reconstructed per configuration, Chamfer distance per object, failures."""
 
+from typing import Optional
+
+import numpy as np
+
+from ..core.metrics import compute_chamfer
 from .cells import Cell, Results
-from .spec import FiguresSpec
+from .pooling import load_distances, pooled_fscore
+from .spec import ChamferTable, FiguresSpec
 
 
 def _end(lines: list[str]) -> str:
@@ -40,9 +46,9 @@ def coverage_table(spec: FiguresSpec, results: Results) -> str:
     return _end(lines)
 
 
-def _ranked_row(label: str, vals: list, rank: bool = True) -> str:
-    """\\textbf the lowest value, \\underline the second lowest, -- for a missing one."""
-    ok = sorted(v for v in vals if v is not None) if rank else []
+def _ranked(vals: list, fmt: str, lowest: bool = True, rank: bool = True) -> list[str]:
+    """\\textbf the best value (lowest, or highest), \\underline the second best, -- for a missing one."""
+    ok = sorted((v for v in vals if v is not None), reverse=not lowest) if rank else []
     best = ok[0] if ok else None
     second = ok[1] if len(ok) > 1 else None
     out = []
@@ -50,18 +56,41 @@ def _ranked_row(label: str, vals: list, rank: bool = True) -> str:
         if v is None:
             out.append("--")
         elif v == best:
-            out.append(f"\\textbf{{{v:.3f}}}")
+            out.append(f"\\textbf{{{v:{fmt}}}}")
         elif v == second:
-            out.append(f"\\underline{{{v:.3f}}}")
+            out.append(f"\\underline{{{v:{fmt}}}}")
         else:
-            out.append(f"{v:.3f}")
-    return f"{label} & " + " & ".join(out) + " \\\\"
+            out.append(f"{v:{fmt}}")
+    return out
 
 
-def chamfer_table(spec: FiguresSpec, results: Results) -> str:
-    """Chamfer distance per object (rows) and method x resolution tier with all views (columns that were run)."""
-    s = spec.tables.chamfer
-    cols = [Cell(m, t) for m in s.methods for t in s.tiers if spec.is_declared(Cell(m, t))]
+def _row(label: str, cells: list[str]) -> str:
+    return f"{label} & " + " & ".join(cells) + " \\\\"
+
+
+def _mean(vals: list) -> Optional[float]:
+    ok = [v for v in vals if v is not None]
+    return sum(ok) / len(ok) if ok else None
+
+
+def _pooled(spec: FiguresSpec, results: Results, cell: Cell, fscore: Optional[float]):
+    """(CD, F %) of the point distances of every reconstructed object concatenated, as if they were one mesh."""
+    pairs = [load_distances(results.config, o, spec.cell_dir(cell)) for o in results.objects if results.ok(o, cell)]
+    if not pairs:
+        return None, None
+    d2g = np.concatenate([d.ravel() for d, _ in pairs])
+    g2d = np.concatenate([g.ravel() for _, g in pairs])
+    cd = compute_chamfer(d2g, g2d, max_dist=results.config.evaluation.max_dist)["chamfer"]
+    return float(cd), None if fscore is None else pooled_fscore(pairs, fscore)
+
+
+def chamfer_table(spec: FiguresSpec, results: Results, table: Optional[ChamferTable] = None) -> str:
+    """Chamfer distance per object (rows) and method x resolution tier with all views (columns that were run), and
+    optionally the F-score at one threshold: 'CD / F' in each cell, or a CD block above an F block. Mean row: mean
+    over the reconstructed objects, or their point distances pooled (CD of Eq. chamfer and F of the pooled points)."""
+    s = table or spec.tables.chamfer
+    env = "sidewaystable" if s.sideways else "table"
+    cols = [Cell(m, t) for m in s.methods for t in s.method_tiers.get(m, s.tiers) if spec.is_declared(Cell(m, t))]
     groups = []
     for c in cols:
         if groups and groups[-1][0] == c.method:
@@ -75,11 +104,11 @@ def chamfer_table(spec: FiguresSpec, results: Results) -> str:
         rules.append(f"\\cmidrule(lr){{{k}-{k + len(ts) - 1}}}")
         k += len(ts)
     lines = [
-        "\\begin{table}[htbp]",
+        f"\\begin{{{env}}}" + ("" if s.sideways else "[htbp]"),
         "\\centering",
         "\\footnotesize",
         f"\\caption{{{s.caption}}}",
-        "\\resizebox{\\textwidth}{!}{%",
+        f"\\resizebox{{\\text{'height' if s.sideways else 'width'}}}{{!}}{{%",
         "\\begin{tabular}{l" + "r" * len(cols) + "}",
         "\\toprule",
         head,
@@ -87,16 +116,39 @@ def chamfer_table(spec: FiguresSpec, results: Results) -> str:
         "Object & " + " & ".join(c.tier for c in cols) + " \\\\",
         "\\midrule",
     ]
-    for obj in results.objects:
-        lines.append(_ranked_row(spec.object_label(obj), [results.chamfer(obj, c) for c in cols]))
-    means, counts = [], []
-    for c in cols:
-        vals = [v for v in (results.chamfer(o, c) for o in results.objects) if v is not None]
-        means.append(sum(vals) / len(vals) if vals else None)
-        counts.append(f"{len(vals)}/{len(results.objects)}")
-    lines += ["\\midrule", _ranked_row("\\textit{Mean}", means, rank=False),
-              "\\textit{Reconstructed} & " + " & ".join(counts) + " \\\\",
-              "\\bottomrule", "\\end{tabular}", "}", f"\\label{{{s.label}}}", "\\end{table}"]
+    objs = results.objects
+    cd = {o: [results.chamfer(o, c) for c in cols] for o in objs}
+    counts = [f"{sum(cd[o][i] is not None for o in objs)}/{len(objs)}" for i in range(len(cols))]
+    if s.mean == "pooled":
+        cd_mean, f_mean = map(list, zip(*(_pooled(spec, results, c, s.fscore) for c in cols)))
+    else:
+        cd_mean = [_mean([cd[o][i] for o in objs]) for i in range(len(cols))]
+    blocks = [(cd, cd_mean, ".3f", True)]
+    if s.fscore is not None:
+        f = {o: [None if v is None else 100 * v for v in (results.fscore_at(o, c, s.fscore) for c in cols)]
+             for o in objs}
+        if s.mean != "pooled":
+            f_mean = [_mean([f[o][i] for o in objs]) for i in range(len(cols))]
+        blocks.append((f, f_mean, ".1f", False))
+
+    def ranked(vals_by_block, rank=True):
+        """Cells of one row: one ranked list per metric, joined as 'CD / F' in the cell layout."""
+        per = [_ranked(vals, fmt, lowest, rank) for vals, (_, _, fmt, lowest) in zip(vals_by_block, blocks)]
+        return [" / ".join(c) if any(x != "--" for x in c) else "--" for c in zip(*per)]
+
+    if s.fscore is None or s.layout == "cell":
+        lines += [_row(spec.object_label(o), ranked([b[0][o] for b in blocks])) for o in objs]
+        lines += ["\\midrule", _row("\\textit{Mean}", ranked([b[1] for b in blocks], rank=False)),
+                  _row("\\textit{Reconstructed}", counts)]
+    else:
+        n = len(cols) + 1
+        titles = ["Chamfer distance (mm) $\\downarrow$", f"F-score at {s.fscore:g}~mm (\\%) $\\uparrow$"]
+        for i, ((vals, mean, fmt, lowest), title) in enumerate(zip(blocks, titles)):
+            lines += ([] if i == 0 else ["\\midrule"]) + [f"\\multicolumn{{{n}}}{{c}}{{{title}}} \\\\", "\\midrule"]
+            lines += [_row(spec.object_label(o), _ranked(vals[o], fmt, lowest)) for o in objs]
+            lines += ["\\midrule", _row("\\textit{Mean}", _ranked(mean, fmt, rank=False)),
+                      _row("\\textit{Reconstructed}", counts)]
+    lines += ["\\bottomrule", "\\end{tabular}", "}", f"\\label{{{s.label}}}", f"\\end{{{env}}}"]
     return _end(lines)
 
 

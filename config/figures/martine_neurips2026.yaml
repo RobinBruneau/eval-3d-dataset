@@ -151,12 +151,25 @@ tables:
     caption: 'Number of objects reconstructed (out of 26) per method, for each subset of input views at quarter resolution (d4) and for each image resolution with all 84 views. A missing reconstruction is a failure of the method (Table~\ref{tab:failures}). --: configuration not run.'
     label: 'tab:coverage'
     output: acquisition_coverage.tex
+  # Two versions (Baptiste, 27/10/2026), one after the other in the supplementary: stacked CD and F blocks, and
+  # 'CD / F' cells on a landscape page (LaTeX package rotating).
   chamfer:
-    methods: [meshroom, realityscan, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]
-    tiers: [d1, d2, d4, d8]
-    caption: 'Chamfer distance (mm, Eq.~\ref{eq:chamfer}) per object, method and image resolution (d1 to d8: full to one-eighth resolution), with all 84 views. \textbf{Bold}: best per row, \underline{underline}: second best. --: failure of the method (no reconstruction, Table~\ref{tab:failures}). The mean is taken over the reconstructed objects only, whose number is given in the last row; means over different object sets are not directly comparable.'
-    label: 'tab:chamfer'
-    output: all_cd.tex
+    - &chamfer
+      methods: [realityscan, meshroom, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]   # PRF legend order
+      tiers: [d1, d2, d4, d8]
+      method_tiers: {meshroom: [d4]}
+      fscore: 0.5          # same threshold as the text (Sec. 4.3)
+      mean: pooled         # Mean row: the objects' point distances concatenated, as for the PRF curves
+      layout: stacked
+      caption: 'Chamfer distance (mm, Eq.~\ref{eq:chamfer}, top block) and F-score at 0.5~mm (\%, bottom block) per object, method and image resolution (d1 to d8: full to one-eighth resolution), with all 84 views; Meshroom at d4 only. \textbf{Bold}: best per row, \underline{underline}: second best, for each metric separately (lowest Chamfer distance, highest F-score). --: failure of the method (no reconstruction, Table~\ref{tab:failures}). \textit{Mean}: Chamfer distance and F-score of the point distances of all reconstructed objects pooled, as if they formed a single mesh, so that larger objects weigh more; the number of reconstructed objects is given in the \textit{Reconstructed} row, and means over different object sets are not directly comparable.'
+      label: 'tab:chamfer'
+      output: all_cd.tex
+    - <<: *chamfer
+      layout: cell
+      sideways: true
+      caption: 'Chamfer distance (mm, Eq.~\ref{eq:chamfer}) / F-score at 0.5~mm (\%) per object, method and image resolution (d1 to d8: full to one-eighth resolution), with all 84 views; Meshroom at d4 only. \textbf{Bold}: best per row, \underline{underline}: second best, for each metric separately (lowest Chamfer distance, highest F-score). --: failure of the method (no reconstruction, Table~\ref{tab:failures}). \textit{Mean}: Chamfer distance and F-score of the point distances of all reconstructed objects pooled, as if they formed a single mesh, so that larger objects weigh more; the number of reconstructed objects is given in the \textit{Reconstructed} row, and means over different object sets are not directly comparable.'
+      label: 'tab:chamfer_cell'
+      output: all_cd_cell.tex
   failures:
     methods: [meshroom, realityscan, colmap, pgsr, neus2, neuralangelo, rnbneus2, supernormal]
     caption: 'Failed reconstructions per configuration. COLMAP and PGSR fail when structure from motion on the images of the configuration alone yields no usable sparse model (single attempt, default settings, no fallback); the other failures are runs that produced no mesh. Failed objects are excluded from all aggregated scores and declared as $n/26$ in the captions.'

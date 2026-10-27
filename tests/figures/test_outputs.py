@@ -45,7 +45,9 @@ def test_figures_command_writes_tables_and_numbers(tmp_path):
     cfg = tmp_path / "eval.yaml"
     cfg.write_text(json.dumps(config.model_dump(mode="json")))
     spec = tmp_path / "spec.yaml"
-    s = make_spec(tables={"failures": {"caption": "F.", "label": "tab:f", "output": "failures.tex"}},
+    cd = {"methods": ["alpha"], "tiers": ["d4"], "caption": "CD.", "label": "tab:cd", "output": "cd.tex"}
+    s = make_spec(tables={"failures": {"caption": "F.", "label": "tab:f", "output": "failures.tex"},
+                          "chamfer": [cd, {**cd, "fscore": 0.5, "sideways": True, "output": "cd_cell.tex"}]},
                   prf={"methods": ["alpha"], "tier": "d4", "max_threshold": 1.0, "n_thresholds": 3,
                        "output": "prf.pdf"})
     spec.write_text(json.dumps(s.model_dump(mode="json")))
@@ -53,6 +55,7 @@ def test_figures_command_writes_tables_and_numbers(tmp_path):
     r = CliRunner().invoke(main, ["-c", str(cfg), "figures", "--spec", str(spec), "--out", str(out)])
     assert r.exit_code == 0, r.output
     assert (out / "failures.tex").is_file() and (out / "prf.pdf").is_file()
+    assert "sidewaystable" in (out / "cd_cell.tex").read_text() and "0.200 \\\\" in (out / "cd.tex").read_text()
     numbers = json.loads((out / "numbers.json").read_text())
     assert numbers["prf"]["methods"]["alpha"]["fscore"] == [0.0, 1.0, 1.0]
 

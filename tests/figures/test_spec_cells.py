@@ -15,10 +15,18 @@ REPO = Path(__file__).resolve().parents[2]
 
 def test_martine_example_spec_loads():
     spec = load_spec(REPO / "config" / "figures" / "martine_neurips2026.yaml")
-    # legend order: RealityScan leads the photogrammetry family; the tables keep their own order
+    # legend order: RealityScan leads the photogrammetry family; the failures table keeps the paper's order
     assert list(spec.methods)[:2] == ["realityscan", "meshroom"]
     paper_order = ["meshroom", "realityscan", "colmap", "pgsr", "neus2", "neuralangelo", "rnbneus2", "supernormal"]
-    assert spec.tables.chamfer.methods == paper_order and spec.tables.failures.methods == paper_order
+    assert spec.tables.failures.methods == paper_order
+    # two versions of the Chamfer table (Baptiste, 27/10/2026): stacked CD / F blocks, and 'CD / F' cells sideways;
+    # both in the PRF legend order, Meshroom at d4 only, Mean row pooled over the objects' points
+    stacked, cell = spec.tables.chamfer_tables
+    assert (stacked.layout, stacked.sideways, cell.layout, cell.sideways) == ("stacked", False, "cell", True)
+    assert stacked.label == "tab:chamfer" and cell.label == "tab:chamfer_cell"
+    for t in (stacked, cell):
+        assert t.methods == spec.prf.methods and t.method_tiers == {"meshroom": ["d4"]}
+        assert (t.fscore, t.mean) == (0.5, "pooled")
     assert spec.radar.threshold == 0.5 and spec.prf.n_thresholds == 201
     # RealityScan view subsets at d4 (Linux rerun, 25/10/2026), as for COLMAP, PGSR, NeuS2 and RNb-NeuS2
     assert spec.cells.declared["realityscan"].views == [40, 20, 10, 5]

@@ -5,7 +5,7 @@ names no path: every input is found through the eval config (eval_root, gt_artif
 """
 
 from pathlib import Path
-from typing import NamedTuple, Optional, Union
+from typing import Literal, NamedTuple, Optional, Union
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
@@ -96,6 +96,14 @@ class CoverageTable(BaseModel):
 class ChamferTable(BaseModel):
     methods: list[str]
     tiers: list[str]
+    method_tiers: dict[str, list[str]] = Field(default_factory=dict,
+                                               description="Tiers of a method, in place of `tiers`")
+    fscore: Optional[float] = Field(default=None, description="Also report the F-score (%) at this threshold (mm)")
+    layout: Literal["cell", "stacked"] = Field(
+        default="cell", description="With `fscore`: 'CD / F' in each cell, or a CD block above an F block")
+    mean: Literal["objects", "pooled"] = Field(
+        default="objects", description="Mean row: mean over the objects, or the objects' point distances pooled")
+    sideways: bool = Field(default=False, description="sidewaystable (LaTeX package rotating), page in landscape")
     caption: str
     label: str
     output: str
@@ -110,8 +118,13 @@ class FailuresTable(BaseModel):
 
 class TablesSpec(BaseModel):
     coverage: Optional[CoverageTable] = None
-    chamfer: Optional[ChamferTable] = None
+    chamfer: Optional[Union[ChamferTable, list[ChamferTable]]] = Field(
+        default=None, description="One Chamfer table, or several versions of it (one output each)")
     failures: Optional[FailuresTable] = None
+
+    @property
+    def chamfer_tables(self) -> list[ChamferTable]:
+        return [] if self.chamfer is None else self.chamfer if isinstance(self.chamfer, list) else [self.chamfer]
 
 
 class ColorbarSpec(BaseModel):
@@ -153,10 +166,12 @@ class FiguresSpec(BaseModel):
             section = getattr(self, name)
             if section is not None:
                 used[name] = section.methods
-        for name in ("coverage", "chamfer", "failures"):
+        for name in ("coverage", "failures"):
             section = getattr(self.tables, name) if self.tables else None
             if section is not None and section.methods:
                 used[f"tables.{name}"] = section.methods
+        for t in self.tables.chamfer_tables if self.tables else []:
+            used[f"tables.chamfer ({t.output})"] = t.methods + list(t.method_tiers)
         for where, methods in used.items():
             unknown = [m for m in methods if m not in self.methods]
             if unknown:
