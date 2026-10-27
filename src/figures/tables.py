@@ -2,8 +2,12 @@
 
 from typing import Optional
 
+import numpy as np
+
+from ..core.metrics import compute_chamfer
 from .cells import Cell, Results
-from .spec import FiguresSpec
+from .pooling import load_distances, pooled_fscore
+from .spec import ChamferTable, FiguresSpec
 
 
 def _end(lines: list[str]) -> str:
@@ -69,10 +73,23 @@ def _mean(vals: list) -> Optional[float]:
     return sum(ok) / len(ok) if ok else None
 
 
-def chamfer_table(spec: FiguresSpec, results: Results) -> str:
+def _pooled(spec: FiguresSpec, results: Results, cell: Cell, fscore: Optional[float]):
+    """(CD, F %) of the point distances of every reconstructed object concatenated, as if they were one mesh."""
+    pairs = [load_distances(results.config, o, spec.cell_dir(cell)) for o in results.objects if results.ok(o, cell)]
+    if not pairs:
+        return None, None
+    d2g = np.concatenate([d.ravel() for d, _ in pairs])
+    g2d = np.concatenate([g.ravel() for _, g in pairs])
+    cd = compute_chamfer(d2g, g2d, max_dist=results.config.evaluation.max_dist)["chamfer"]
+    return float(cd), None if fscore is None else pooled_fscore(pairs, fscore)
+
+
+def chamfer_table(spec: FiguresSpec, results: Results, table: Optional[ChamferTable] = None) -> str:
     """Chamfer distance per object (rows) and method x resolution tier with all views (columns that were run), and
-    optionally the F-score at one threshold: 'CD / F' in each cell, or a CD block above an F block."""
-    s = spec.tables.chamfer
+    optionally the F-score at one threshold: 'CD / F' in each cell, or a CD block above an F block. Mean row: mean
+    over the reconstructed objects, or their point distances pooled (CD of Eq. chamfer and F of the pooled points)."""
+    s = table or spec.tables.chamfer
+    env = "sidewaystable" if s.sideways else "table"
     cols = [Cell(m, t) for m in s.methods for t in s.method_tiers.get(m, s.tiers) if spec.is_declared(Cell(m, t))]
     groups = []
     for c in cols:
@@ -87,11 +104,11 @@ def chamfer_table(spec: FiguresSpec, results: Results) -> str:
         rules.append(f"\\cmidrule(lr){{{k}-{k + len(ts) - 1}}}")
         k += len(ts)
     lines = [
-        "\\begin{table}[htbp]",
+        f"\\begin{{{env}}}" + ("" if s.sideways else "[htbp]"),
         "\\centering",
         "\\footnotesize",
         f"\\caption{{{s.caption}}}",
-        "\\resizebox{\\textwidth}{!}{%",
+        f"\\resizebox{{\\text{'height' if s.sideways else 'width'}}}{{!}}{{%",
         "\\begin{tabular}{l" + "r" * len(cols) + "}",
         "\\toprule",
         head,
@@ -102,12 +119,17 @@ def chamfer_table(spec: FiguresSpec, results: Results) -> str:
     objs = results.objects
     cd = {o: [results.chamfer(o, c) for c in cols] for o in objs}
     counts = [f"{sum(cd[o][i] is not None for o in objs)}/{len(objs)}" for i in range(len(cols))]
-    cd_mean = [_mean([cd[o][i] for o in objs]) for i in range(len(cols))]
+    if s.mean == "pooled":
+        cd_mean, f_mean = map(list, zip(*(_pooled(spec, results, c, s.fscore) for c in cols)))
+    else:
+        cd_mean = [_mean([cd[o][i] for o in objs]) for i in range(len(cols))]
     blocks = [(cd, cd_mean, ".3f", True)]
     if s.fscore is not None:
         f = {o: [None if v is None else 100 * v for v in (results.fscore_at(o, c, s.fscore) for c in cols)]
              for o in objs}
-        blocks.append((f, [_mean([f[o][i] for o in objs]) for i in range(len(cols))], ".1f", False))
+        if s.mean != "pooled":
+            f_mean = [_mean([f[o][i] for o in objs]) for i in range(len(cols))]
+        blocks.append((f, f_mean, ".1f", False))
 
     def ranked(vals_by_block, rank=True):
         """Cells of one row: one ranked list per metric, joined as 'CD / F' in the cell layout."""
@@ -126,7 +148,7 @@ def chamfer_table(spec: FiguresSpec, results: Results) -> str:
             lines += [_row(spec.object_label(o), _ranked(vals[o], fmt, lowest)) for o in objs]
             lines += ["\\midrule", _row("\\textit{Mean}", _ranked(mean, fmt, rank=False)),
                       _row("\\textit{Reconstructed}", counts)]
-    lines += ["\\bottomrule", "\\end{tabular}", "}", f"\\label{{{s.label}}}", "\\end{table}"]
+    lines += ["\\bottomrule", "\\end{tabular}", "}", f"\\label{{{s.label}}}", f"\\end{{{env}}}"]
     return _end(lines)
 
 

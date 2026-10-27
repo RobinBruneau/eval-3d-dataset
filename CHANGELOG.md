@@ -16,8 +16,11 @@
 - **`figures`: F-score in the Chamfer table.** `tables.chamfer.fscore` adds the F-score (%) at one
   threshold, ranked on its own (highest in bold), either in each cell as 'CD / F' (`layout: cell`) or
   as a second block below the Chamfer one (`layout: stacked`); `method_tiers` restricts the tiers of a
-  method. The Martine specification reports CD / F at 0.5 mm, in the PRF legend order, Meshroom at d4
-  only.
+  method. `mean: pooled` computes the Mean row from the point distances of the reconstructed objects
+  concatenated (CD of the pooled distances, F as in the PRF curves); `sideways` puts the table on a
+  landscape page (`sidewaystable`); `tables.chamfer` may list several versions of the table. The Martine
+  specification writes two versions, stacked CD / F blocks (`all_cd.tex`) and 'CD / F' cells sideways
+  (`all_cd_cell.tex`): F at 0.5 mm, pooled Mean, PRF legend order, Meshroom at d4 only.
 - **`figures`: size of the PRF figure in the specification** (`prf.figsize`, inches; default 10 x 2.2,
   the former fixed size, output unchanged). The vertical margins are now fixed in inches.
 - **Martine figures specification: taller PRF figure, new palette, viridis.** PRF at 10 x 3.5 in with
