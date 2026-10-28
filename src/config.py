@@ -94,7 +94,9 @@ class EvaluationConfig(BaseModel):
 
     downsample_density: float = Field(default=0.05, gt=0, description="Point sampling density")
     max_dist: float = Field(default=2.0, gt=0, description="Max distance for filtering outliers")
-    curvature_radius: Optional[float] = Field(default=None, description="Radius for curvature estimation (None = auto)")
+    curvature_radius: Optional[float] = Field(
+        default=1.0, description="VCM curvature: radius r of the connected ball, mesh units (None = 1.0)")
+    curvature_tube: float = Field(default=0.5, gt=0, description="VCM curvature: tube thickness R, mesh units")
     sampling_seed: int = Field(
         default=42,
         description=(

@@ -1,61 +1,12 @@
-"""The fast GT-attribute paths (vectorised curvature, in-view-only chunked visibility)
-must give the same values as the former per-vertex / all-points implementations."""
+"""The fast GT-attribute path (in-view-only chunked visibility) must give the same values as the
+former all-points implementation. (The curvature is now the VCM, tested in test_vcm_curvature.py.)"""
 
 import numpy as np
 import trimesh
 from PIL import Image
-from scipy.spatial import cKDTree
 
-from src.core.mesh import compute_vertex_curvature
 from src.core.visibility import compute_visibility_count, ray_visibility_check, check_points_in_mask
 from src.core.camera import get_camera_centers
-
-
-def _reference_curvature(mesh, radius):
-    """Verbatim copy of the former per-vertex loop (src/core/mesh.py before the speed-up)."""
-    tree = cKDTree(mesh.vertices)
-    curvature = np.zeros(len(mesh.vertices), dtype=np.float32)
-    normals = mesh.vertex_normals
-    for i, idx in enumerate(tree.query_ball_point(mesh.vertices, r=radius)):
-        if len(idx) < 6:
-            continue
-        pts_centered = mesh.vertices[idx] - mesh.vertices[i]
-        normal = normals[i]
-        tangent1 = np.cross(normal, [1, 0, 0]) if abs(normal[0]) < 0.9 else np.cross(normal, [0, 1, 0])
-        tangent1 /= np.linalg.norm(tangent1)
-        tangent2 = np.cross(normal, tangent1)
-        u, v, w = pts_centered @ tangent1, pts_centered @ tangent2, pts_centered @ normal
-        params, _, _, _ = np.linalg.lstsq(np.column_stack([u**2, u*v, v**2]), w, rcond=None)
-        a, b, c = params
-        tr, det = 2*a + 2*c, 4*a*c - b**2
-        disc = max(0, tr**2 - 4*det)
-        k1, k2 = (tr + np.sqrt(disc)) / 2, (tr - np.sqrt(disc)) / 2
-        curvature[i] = k1 if abs(k1) > abs(k2) else k2
-    return curvature
-
-
-def _bumpy_mesh():
-    m = trimesh.creation.icosphere(subdivisions=4, radius=10.0)
-    rng = np.random.default_rng(0)
-    v = m.vertices * (1 + 0.03 * np.sin(3 * m.vertices[:, :1]) + 0.002 * rng.standard_normal((len(m.vertices), 1)))
-    return trimesh.Trimesh(v, m.faces, process=False)
-
-
-def test_vectorised_curvature_matches_reference_loop():
-    m = _bumpy_mesh()
-    ref = _reference_curvature(m, radius=2.0)
-    fast = compute_vertex_curvature(m, radius=2.0, batch_size=257)       # odd batch: boundaries
-    assert np.allclose(fast, ref, rtol=1e-4, atol=1e-6)
-
-
-def test_curvature_on_vertex_subset_only():
-    m = _bumpy_mesh()
-    full = compute_vertex_curvature(m, radius=2.0)
-    sub = np.array([5, 17, 17, 400, len(m.vertices) - 1])
-    part = compute_vertex_curvature(m, radius=2.0, vertex_indices=sub)
-    assert np.allclose(part[sub], full[sub], rtol=1e-6, atol=1e-9)
-    others = np.setdiff1d(np.arange(len(m.vertices)), sub)
-    assert not part[others].any()
 
 
 def _scene(tmp_path):
@@ -88,13 +39,3 @@ def test_visibility_count_matches_all_points_reference(tmp_path):
                                     ray_chunk=333)
     assert np.array_equal(fast, ref)
     assert 0 < ref.sum() < 3 * len(pts)          # the scene does exercise occlusion and the masks
-
-
-def test_parallel_curvature_identical_to_serial():
-    m = _bumpy_mesh()
-    serial = compute_vertex_curvature(m, radius=2.0, batch_size=300)
-    parallel = compute_vertex_curvature(m, radius=2.0, batch_size=300, n_jobs=3)
-    assert np.array_equal(serial, parallel)
-    sub = np.arange(0, len(m.vertices), 7)
-    assert np.array_equal(compute_vertex_curvature(m, radius=2.0, vertex_indices=sub, batch_size=100, n_jobs=2), 
-                          compute_vertex_curvature(m, radius=2.0, vertex_indices=sub, batch_size=100))

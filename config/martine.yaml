@@ -90,8 +90,13 @@ evaluation:
   # Units are MESH UNITS = millimetres (Martine GT meshes are in mm).
   downsample_density: 0.05          # resample step (mm) for both GT and recon
   max_dist: 4.0                     # Chamfer/coverage cutoff (mm)
-  curvature_radius: 2.0
+  curvature_radius: 1.0               # VCM curvature: ball radius r (mm)
+  curvature_tube: 0.5                 # VCM curvature: tube thickness R (mm)
   fscore_thresholds: [0.5, 1.0, 1.5, 2.0, 5.0]
+
+aggregation:
+  # High-curvature zone |k| > 0.75 mm^-1 (VCM, r = 1, R = 0.5); convex < 0
+  curvature_thresholds: {concave: -0.75, convex: 0.75}
 
 visualization:
   auto_generate: false

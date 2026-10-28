@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- **Curvature: Voronoi Covariance Measure instead of the quadric fit.** `curvature_values.npy` is now the
+  VCM summed on the connected ball of radius `evaluation.curvature_radius` (r, default 1.0; the far side
+  of a thin wall is no longer mixed in), with tube thickness `evaluation.curvature_tube` (R, new, default
+  0.5; `preprocess-gt --curvature-tube`). Same file, same sign convention (convex < 0), same commands;
+  `compute_vertex_curvature` keeps its name. The Martine configurations use r = 1 mm, R = 0.5 mm and
+  explicit aggregation thresholds at |k| = 0.75 mm^-1; the paper's radar `high_curvature` axis is now
+  `lt: -0.75`. Existing `curvature_values.npy` are not recomputed: delete them and rerun `preprocess-gt`
+  (`--force` would also redo the cleaning and the sampling). New dependency: `numba`.
 - **`figures` command: a paper's figures and tables from the eval outputs.** The new `src/figures/`
   package builds pooled precision/recall/F-score curves, a radar per surface property, F-score
   against views and resolution, the coverage, Chamfer and failures LaTeX tables, and the crops of the

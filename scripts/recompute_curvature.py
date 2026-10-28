@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Recompute curvature_values.npy with a specified radius.
+"""Recompute curvature_values.npy (VCM) with a specified ball radius r and tube thickness R.
 
 Loads existing gt_pcd.npy and GT mesh, computes curvature, saves.
 Does NOT recompute gt_pcd or visibility.
@@ -20,7 +20,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", "-c", required=True)
     parser.add_argument("--object", "-o", required=True)
-    parser.add_argument("--radius", "-r", type=float, default=2.0)
+    parser.add_argument("--radius", "-r", type=float, default=1.0, help="VCM ball radius r (mm)")
+    parser.add_argument("--tube", type=float, default=0.5, help="VCM tube thickness R (mm)")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -41,7 +42,7 @@ def main():
         sys.exit(1)
 
     print(f"Object: {args.object}")
-    print(f"Radius: {args.radius} mm")
+    print(f"Radius: {args.radius} mm, tube: {args.tube} mm")
 
     mesh = load_mesh(gt_mesh_path)
     print(f"Mesh: {len(mesh.vertices):,} vertices, {len(mesh.faces):,} faces")
@@ -50,7 +51,7 @@ def main():
     print(f"GT pcd: {len(gt_pcd):,} points")
 
     print(f"Computing vertex curvature...")
-    vertex_curvature = compute_vertex_curvature(mesh, radius=args.radius)
+    vertex_curvature = compute_vertex_curvature(mesh, radius=args.radius, tube=args.tube)
 
     print(f"Transferring to gt_pcd via nearest neighbor...")
     from scipy.spatial import cKDTree

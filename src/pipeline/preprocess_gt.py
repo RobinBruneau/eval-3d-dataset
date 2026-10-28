@@ -12,7 +12,7 @@ from ..core.sampling import upsample_mesh, downsample_pcd
 from ..core.visibility import compute_visibility_count
 
 
-def compute_gt_curvature(mesh, gt_pcd: np.ndarray, radius: float | None = None) -> np.ndarray:
+def compute_gt_curvature(mesh, gt_pcd: np.ndarray, radius: float | None = None, tube: float = 0.5) -> np.ndarray:
     """Compute curvature values for GT point cloud.
 
     Uses vertex curvature from the mesh and transfers to nearest sampled points.
@@ -20,20 +20,17 @@ def compute_gt_curvature(mesh, gt_pcd: np.ndarray, radius: float | None = None) 
     Args:
         mesh: GT mesh.
         gt_pcd: Sampled GT point cloud, shape (N, 3).
-        radius: Spatial radius for curvature estimation.
+        radius: VCM ball radius r (None = 1.0).
+        tube: VCM tube thickness R.
 
     Returns:
         Curvature values, shape (N,).
     """
     from ..core.metrics import compute_distances
     _, nearest_vertex_idx = compute_distances(gt_pcd, mesh.vertices)
-
-    # Only the vertices some GT point maps to are needed.
-    import os
-    n_jobs = int(os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count() or 1))
-    # Parallel batches; small batches keep the per-worker memory bounded (~batch x neighbours x 150 B).
-    vertex_curvature = compute_vertex_curvature(mesh, radius=radius, vertex_indices=nearest_vertex_idx,
-                                                batch_size=4_000 if n_jobs > 1 else 20_000, n_jobs=n_jobs)
+    # VCM needs every vertex (shared Voronoi cells), the points then take their nearest vertex's value.
+    vertex_curvature = compute_vertex_curvature(mesh, radius=1.0 if radius is None else radius, tube=tube,
+                                                verbose=True)
 
     return vertex_curvature[nearest_vertex_idx].astype(np.float32)
 
@@ -233,8 +230,9 @@ def preprocess_gt(
         if curvature_path.exists() and not force:
             print(f"  Curvature already exists, skipping")
         else:
-            print(f"  Computing curvature values (radius={config.evaluation.curvature_radius})")
-            curvature = compute_gt_curvature(mesh, gt_pcd, radius=config.evaluation.curvature_radius)
+            ev = config.evaluation
+            print(f"  Computing curvature values (radius={ev.curvature_radius}, tube={ev.curvature_tube})")
+            curvature = compute_gt_curvature(mesh, gt_pcd, radius=ev.curvature_radius, tube=ev.curvature_tube)
             np.save(curvature_path, curvature)
             print(f"  Saved curvature_values.npy")
 

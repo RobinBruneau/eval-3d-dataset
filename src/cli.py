@@ -37,13 +37,15 @@ def main(ctx, config):
 @main.command()
 @click.option("--object", "-o", "object_name", help="Object name (default: all)")
 @click.option("--curvature/--no-curvature", default=True, help="Compute curvature")
-@click.option("--curvature-radius", type=float, help="Radius for curvature estimation (None = auto)")
+@click.option("--curvature-radius", type=float, help="VCM curvature: ball radius r (default: from config)")
+@click.option("--curvature-tube", type=float, help="VCM curvature: tube thickness R (default: from config)")
 @click.option("--visibility/--no-visibility", default=True, help="Compute visibility")
 @click.option("--use-masks/--no-masks", "use_masks", default=None, help="Use 2D masks for visibility (None = use config)")
 @click.option("--clean-gt/--no-clean-gt", default=True, help="Clean GT mesh by visibility")
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing files")
 @click.pass_context
-def preprocess_gt(ctx, object_name, curvature, curvature_radius, visibility, use_masks, clean_gt, force):
+def preprocess_gt(ctx, object_name, curvature, curvature_radius, curvature_tube, visibility, use_masks, clean_gt,
+                  force):
     """Preprocess ground truth: clean mesh, sample point cloud and compute attributes."""
     from .pipeline.preprocess_gt import preprocess_gt as _preprocess_gt
 
@@ -52,6 +54,8 @@ def preprocess_gt(ctx, object_name, curvature, curvature_radius, visibility, use
         config.cleanup.use_masks = use_masks
     if curvature_radius is not None:
         config.evaluation.curvature_radius = curvature_radius
+    if curvature_tube is not None:
+        config.evaluation.curvature_tube = curvature_tube
         
     objects = [object_name] if object_name else config.dataset.objects
 

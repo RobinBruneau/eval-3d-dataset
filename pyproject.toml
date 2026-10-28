@@ -18,6 +18,7 @@ dependencies = [
     "opencv-python>=4.8.0",     # Camera decomposition (fallback)
     "matplotlib>=3.7.0",        # Visualization
     "Pillow>=10.0.0",           # Image loading for masks
+    "numba>=0.59",              # VCM curvature (connected-ball sums)
 ]
 
 [project.optional-dependencies]
